@@ -1,0 +1,21 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.formatOnPaste": true,
+  "editor.formatOnSave": true,
+  "editor.formatOnType": true,
+  "editor.codeActionsOnSave": [
+    "source.organizeImports",
+    "source.addMissingImports",
+    "source.fixAll.eslint"
+  ],
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "files.encoding": "utf8",
+  "files.eol": "\n",
+  "cSpell.words": ["authts", "Entra", "entraid", "nosniff", "PKCE", "Supabase"],
+  "markdownlint.config": {
+    "default": true,
+    "MD036": false,
+    "MD024": false
+  }
+}
