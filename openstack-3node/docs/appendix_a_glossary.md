@@ -10,14 +10,79 @@
 
 ## 📑 目次
 
-- [コンポーネント名](#コンポーネント名)
-- [ノード・インフラストラクチャ](#ノードインフラストラクチャ)
-- [ネットワーク関連](#ネットワーク関連)
-- [ストレージ関連](#ストレージ関連)
-- [仮想化関連](#仮想化関連)
-- [認証・セキュリティ](#認証セキュリティ)
-- [運用・管理](#運用管理)
-- [その他の重要用語](#その他の重要用語)
+- [付録A: 用語集（Glossary）](#付録a-用語集glossary)
+  - [📑 目次](#-目次)
+  - [コンポーネント名](#コンポーネント名)
+    - [**Keystone（キーストーン）**](#keystoneキーストーン)
+    - [**Nova（ノヴァ）**](#novaノヴァ)
+    - [**Neutron（ニュートロン）**](#neutronニュートロン)
+    - [**Glance（グランス）**](#glanceグランス)
+    - [**Cinder（シンダー）**](#cinderシンダー)
+    - [**Swift（スウィフト）**](#swiftスウィフト)
+    - [**Horizon（ホライゾン）**](#horizonホライゾン)
+    - [**Heat（ヒート）**](#heatヒート)
+    - [**Ceilometer（セイロメーター）**](#ceilometerセイロメーター)
+  - [ノード・インフラストラクチャ](#ノードインフラストラクチャ)
+    - [**コントローラノード（Controller Node）**](#コントローラノードcontroller-node)
+    - [**コンピュートノード（Compute Node）**](#コンピュートノードcompute-node)
+    - [**ネットワークノード（Network Node）**](#ネットワークノードnetwork-node)
+    - [**ストレージノード（Storage Node）**](#ストレージノードstorage-node)
+    - [**All-in-One構成**](#all-in-one構成)
+  - [ネットワーク関連](#ネットワーク関連)
+    - [**プロバイダーネットワーク（Provider Network）**](#プロバイダーネットワークprovider-network)
+    - [**テナントネットワーク（Tenant Network / Self-Service Network）**](#テナントネットワークtenant-network--self-service-network)
+    - [**管理ネットワーク（Management Network）**](#管理ネットワークmanagement-network)
+    - [**オーバーレイネットワーク（Overlay Network / Tunnel Network）**](#オーバーレイネットワークoverlay-network--tunnel-network)
+    - [**外部ネットワーク（External Network）**](#外部ネットワークexternal-network)
+    - [**Floating IP（フローティングIP）**](#floating-ipフローティングip)
+    - [**セキュリティグループ（Security Group）**](#セキュリティグループsecurity-group)
+    - [**VXLAN（Virtual Extensible LAN）**](#vxlanvirtual-extensible-lan)
+    - [**Open vSwitch（OVS）**](#open-vswitchovs)
+    - [**Linux Bridge**](#linux-bridge)
+  - [ストレージ関連](#ストレージ関連)
+    - [**ボリューム（Volume）**](#ボリュームvolume)
+    - [**エフェメラルディスク（Ephemeral Disk）**](#エフェメラルディスクephemeral-disk)
+    - [**スナップショット（Snapshot）**](#スナップショットsnapshot)
+    - [**バックエンドストレージ（Backend Storage）**](#バックエンドストレージbackend-storage)
+    - [**Ceph**](#ceph)
+    - [**LVM（Logical Volume Manager）**](#lvmlogical-volume-manager)
+  - [仮想化関連](#仮想化関連)
+    - [**ハイパーバイザー（Hypervisor）**](#ハイパーバイザーhypervisor)
+    - [**KVM（Kernel-based Virtual Machine）**](#kvmkernel-based-virtual-machine)
+    - [**QEMU（Quick Emulator）**](#qemuquick-emulator)
+    - [**libvirt**](#libvirt)
+    - [**インスタンス（Instance）**](#インスタンスinstance)
+    - [**Flavor（フレーバー）**](#flavorフレーバー)
+    - [**イメージ（Image）**](#イメージimage)
+  - [認証・セキュリティ](#認証セキュリティ)
+    - [**プロジェクト（Project / Tenant）**](#プロジェクトproject--tenant)
+    - [**ユーザー（User）**](#ユーザーuser)
+    - [**ロール（Role）**](#ロールrole)
+    - [**トークン（Token）**](#トークンtoken)
+    - [**サービスカタログ（Service Catalog）**](#サービスカタログservice-catalog)
+    - [**エンドポイント（Endpoint）**](#エンドポイントendpoint)
+  - [運用・管理](#運用管理)
+    - [**DevStack**](#devstack)
+    - [**Kolla-Ansible**](#kolla-ansible)
+    - [**TripleO（OpenStack-on-OpenStack）**](#tripleoopenstack-on-openstack)
+    - [**RabbitMQ**](#rabbitmq)
+    - [**MariaDB / MySQL**](#mariadb--mysql)
+    - [**Memcached**](#memcached)
+    - [**HAProxy**](#haproxy)
+    - [**Pacemaker / Corosync**](#pacemaker--corosync)
+    - [**Ansible**](#ansible)
+  - [その他の重要用語](#その他の重要用語)
+    - [**リージョン（Region）**](#リージョンregion)
+    - [**アベイラビリティゾーン（Availability Zone）**](#アベイラビリティゾーンavailability-zone)
+    - [**ホストアグリゲート（Host Aggregate）**](#ホストアグリゲートhost-aggregate)
+    - [**オーバーコミット（Overcommit）**](#オーバーコミットovercommit)
+    - [**API バージョン（Microversion）**](#api-バージョンmicroversion)
+    - [**RBAC（Role-Based Access Control）**](#rbacrole-based-access-control)
+    - [**Quota（クォータ）**](#quotaクォータ)
+    - [**Cloud-init**](#cloud-init)
+    - [**Metadata Service**](#metadata-service)
+    - [**リリース名（Release Name）**](#リリース名release-name)
+  - [📚 関連ドキュメント](#-関連ドキュメント)
 
 ---
 
@@ -535,11 +600,11 @@ Neutronに関連するネットワーク用語です。
 - **説明**: OpenStackのバージョンを表すコードネーム
 - **命名規則**: アルファベット順（Austin → Bobcat → Caracal...）
 - **例**:
-  - **Caracal**: 2024年10月（最新安定版 at 2025年1月）
-  - **Bobcat**: 2024年4月
-  - **Antelope**: 2023年10月
-  - **Zed**: 2022年10月
-  - **Yoga**: 2022年4月
+  - **Flamingo**: 2025年10月（2025.2 - 最新版）
+  - **Epoxy**: 2025年4月（2025.1）
+  - **Dalmatian**: 2024年10月（2024.2）
+  - **Caracal**: 2024年4月（2024.1）
+  - **Bobcat**: 2023年10月
 - **参照**: Part 1 - OpenStack概要と選択肢
 
 ---
@@ -557,5 +622,5 @@ Neutronに関連するネットワーク用語です。
 
 ---
 
-**OpenStack学習資料** - Powered by Server World + OpenStack Documentation  
+**OpenStack学習資料** - Powered by Server World + OpenStack Documentation
 **最終更新**: 2025年10月

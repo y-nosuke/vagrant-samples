@@ -240,7 +240,7 @@ cat Vagrantfile
 
 Vagrantfileの詳細は以下のファイルを参照してください：
 
-- [Vagrantfile](../Vagrantfile)
+- [Vagrantfile](./Vagrantfile)
 
 **主な設定項目**:
 
@@ -494,5 +494,5 @@ Phase 1が完了したら、Phase 2（基盤構築）に進んでください：
 
 - [OpenStack学習ロードマップ](../openstack-learning-roadmap.md)
 - [ネットワーク構成図（詳細）](./network-diagram.md)
-- [Vagrantfile](../Vagrantfile)
+- [Vagrantfile](./Vagrantfile)
 - [プロジェクトREADME](../README.md)

@@ -18,9 +18,11 @@ OpenStack学習用の3ノード構成環境です。Vagrant + VirtualBoxで構�
 ## 📋 前提条件
 
 - **CPU**: 8コア以上（仮想化支援機能必須）
-- **メモリ**: 24GB以上推奨（最小16GB）
+- **メモリ**: 16GB以上（24GB推奨）
 - **ディスク**: 200GB以上の空き容量（SSD推奨）
 - **ソフトウェア**: VirtualBox 7.0+, Vagrant 2.3+
+
+📖 **詳細な環境要件と構成**: [OpenStack学習環境構築ロードマップ](docs/openstack-learning-roadmap.md)
 
 ## 🚀 クイックスタート
 
@@ -97,7 +99,7 @@ openstack-3node/
 - **カテゴリE**: 自動化・IaC（Terraform、Ansible、Heat）
 - **カテゴリF**: 次世代への移行（Kolla-Ansible）
 
-詳細は [OpenStack学習ロードマップ](../openstack-learning-roadmap.md) を参照してください。
+詳細は [OpenStack学習ロードマップ](docs/openstack-learning-roadmap.md) を参照してください。
 
 ## 📖 ドキュメント
 
@@ -165,7 +167,7 @@ vagrant status
 ## 🔗 参考リンク
 
 - [OpenStack公式ドキュメント](https://docs.openstack.org/)
-- [Server World - OpenStack Epoxy](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy)
+- [Server World - OpenStack Flamingo](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_flamingo)
 - [Vagrant Documentation](https://www.vagrantup.com/docs)
 - [VirtualBox Documentation](https://www.virtualbox.org/wiki/Documentation)
 

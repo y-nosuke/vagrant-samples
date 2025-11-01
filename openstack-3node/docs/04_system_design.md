@@ -2,14 +2,108 @@
 
 ## 目次
 
-1. [ノード設計](#1-ノード設計)
-2. [ストレージ設計](#2-ストレージ設計)
-3. [ハードウェア要件](#3-ハードウェア要件)
-4. [OS選択とハイパーバイザー](#4-os選択とハイパーバイザー)
+- [Part 4: システム設計ガイド](#part-4-システム設計ガイド)
+  - [目次](#目次)
+  - [1. ノード設計](#1-ノード設計)
+    - [1.1 構成パターンの全体像 ✅](#11-構成パターンの全体像-)
+    - [1.2 All-in-One構成 🎓](#12-all-in-one構成-)
+      - [アーキテクチャ](#アーキテクチャ)
+      - [特徴](#特徴)
+      - [メリット・デメリット](#メリットデメリット)
+      - [リソース要件 🎓](#リソース要件-)
+      - [推奨用途](#推奨用途)
+    - [1.3 マルチノード構成（基本）⭐ 🎓](#13-マルチノード構成基本-)
+      - [パターンA: 2ノード構成（最小マルチノード）](#パターンa-2ノード構成最小マルチノード)
+      - [パターンB: 3ノード構成（標準マルチノード）✅ 🎓](#パターンb-3ノード構成標準マルチノード-)
+      - [パターンC: 4ノード構成（拡張マルチノード）💡](#パターンc-4ノード構成拡張マルチノード)
+    - [1.4 高可用性（HA）構成 🏢](#14-高可用性ha構成-)
+      - [アーキテクチャ](#アーキテクチャ-1)
+      - [主要コンポーネント](#主要コンポーネント)
+      - [最小HA構成のノード数](#最小ha構成のノード数)
+      - [メリット・デメリット](#メリットデメリット-1)
+      - [推奨用途](#推奨用途-1)
+    - [1.5 分散構成（DCN - Distributed Compute Node）💡 🏢](#15-分散構成dcn---distributed-compute-node-)
+      - [アーキテクチャ](#アーキテクチャ-2)
+      - [特徴](#特徴-1)
+      - [推奨用途](#推奨用途-2)
+    - [1.6 構成パターンの比較表 ✅](#16-構成パターンの比較表-)
+    - [1.7 スケーラビリティの考え方 ⭐](#17-スケーラビリティの考え方-)
+      - [垂直スケール vs 水平スケール](#垂直スケール-vs-水平スケール)
+      - [コンピュートノードのスケールアウト ⭐](#コンピュートノードのスケールアウト-)
+    - [1.8 リソース割り当ての考え方 💡](#18-リソース割り当ての考え方-)
+      - [オーバーコミット ⭐](#オーバーコミット-)
+      - [フレーバー設計 💡](#フレーバー設計-)
+  - [2. ストレージ設計](#2-ストレージ設計)
+    - [2.1 OpenStackのストレージ概要 ✅](#21-openstackのストレージ概要-)
+    - [2.2 エフェメラルストレージ（一時ストレージ）💡](#22-エフェメラルストレージ一時ストレージ)
+      - [特徴](#特徴-2)
+    - [2.3 Cinder（ブロックストレージ）✅](#23-cinderブロックストレージ)
+      - [アーキテクチャ](#アーキテクチャ-3)
+      - [ストレージバックエンドの種類 ⭐](#ストレージバックエンドの種類-)
+        - [**LVM (Logical Volume Manager)** 🎓](#lvm-logical-volume-manager-)
+      - [メリット](#メリット)
+      - [デメリット](#デメリット)
+      - [LVMの仕組み](#lvmの仕組み)
+        - [**Ceph RBD (RADOS Block Device)** 🏢](#ceph-rbd-rados-block-device-)
+      - [メリット](#メリット-1)
+      - [デメリット](#デメリット-1)
+      - [Cephの仕組み](#cephの仕組み)
+        - [**その他のバックエンド** 💡](#その他のバックエンド-)
+      - [Cinderボリュームの操作 ⭐](#cinderボリュームの操作-)
+    - [2.4 Swift（オブジェクトストレージ）💡](#24-swiftオブジェクトストレージ)
+      - [アーキテクチャ](#アーキテクチャ-4)
+        - [主要コンセプト](#主要コンセプト)
+      - [特徴](#特徴-3)
+      - [メリット・デメリット](#メリットデメリット-2)
+        - [メリット](#メリット-2)
+        - [デメリット](#デメリット-2)
+      - [使用例 💡](#使用例-)
+    - [2.5 ストレージの比較 ✅](#25-ストレージの比較-)
+    - [2.6 学習環境でのストレージ設計 🎓](#26-学習環境でのストレージ設計-)
+      - [推奨構成](#推奨構成)
+      - [設定例](#設定例)
+  - [3. ハードウェア要件](#3-ハードウェア要件)
+    - [3.1 構成パターン別のリソース要件 ✅](#31-構成パターン別のリソース要件-)
+      - [パターンA: All-in-One構成 🎓](#パターンa-all-in-one構成-)
+      - [パターンB: 2ノード構成 🎓](#パターンb-2ノード構成-)
+      - [パターンC: 3ノード構成（標準）⭐ 🎓](#パターンc-3ノード構成標準-)
+      - [パターンD: 4+ノード構成（拡張）💡](#パターンd-4ノード構成拡張)
+    - [3.2 本番環境のリソース要件 🏢](#32-本番環境のリソース要件-)
+      - [最小本番環境（3ノード）](#最小本番環境3ノード)
+      - [大規模本番環境（HA構成）](#大規模本番環境ha構成)
+    - [3.3 コンピュートノードの設計 ⭐](#33-コンピュートノードの設計-)
+      - [CPU要件](#cpu要件)
+      - [メモリ要件](#メモリ要件)
+      - [ディスク要件](#ディスク要件)
+    - [3.4 ネットワーク要件 ⭐](#34-ネットワーク要件-)
+      - [NICの数と役割](#nicの数と役割)
+      - [帯域幅要件](#帯域幅要件)
+  - [4. OS選択とハイパーバイザー](#4-os選択とハイパーバイザー)
+    - [4.1 推奨OS ✅](#41-推奨os-)
+      - [Ubuntu（推奨）⭐ 🎓](#ubuntu推奨-)
+      - [メリット](#メリット-3)
+      - [推奨理由](#推奨理由)
+      - [Rocky Linux / AlmaLinux 💡](#rocky-linux--almalinux-)
+      - [メリット](#メリット-4)
+      - [推奨環境](#推奨環境)
+      - [その他のOS 📚](#その他のos-)
+    - [4.2 ハイパーバイザーの選択 ✅](#42-ハイパーバイザーの選択-)
+      - [KVM/QEMU（推奨）⭐](#kvmqemu推奨)
+      - [メリット](#メリット-5)
+      - [デメリット](#デメリット-3)
+      - [その他のハイパーバイザー 💡](#その他のハイパーバイザー-)
+  - [まとめ](#まとめ)
+    - [Part 4で学んだこと ✅](#part-4で学んだこと-)
+    - [次のステップ 📚](#次のステップ-)
 
 ---
 
 ## 1. ノード設計
+
+> **関連情報**:
+>
+> - アーキテクチャの理解: [Part 2 - ノード構成](02_architecture.md#2-ノード構成の考え方)
+> - 実践例: [Part 6 - 学習環境の構成](06_practical_guide.md#1-学習環境の構成パターン)
 
 OpenStackの構成は、目的・規模・可用性要件によって大きく変わります。
 
@@ -18,17 +112,17 @@ OpenStackの構成は、目的・規模・可用性要件によって大きく�
 ```mermaid
 graph TB
     Purpose{目的・規模は?}
-    
+
     Purpose -->|学習・検証| AllInOne[All-in-One<br/>1ノード]
     Purpose -->|小規模本番| Multi[マルチノード<br/>2-4ノード]
     Purpose -->|中規模本番| MultiHA[マルチノード+HA<br/>5-10ノード]
     Purpose -->|大規模本番| Distributed[分散構成<br/>10+ノード]
-    
+
     AllInOne --> Use1[機能確認<br/>開発環境]
     Multi --> Use2[部門サーバー<br/>小規模クラウド]
     MultiHA --> Use3[エンタープライズ<br/>高可用性必須]
     Distributed --> Use4[大規模クラウド<br/>エッジ対応]
-    
+
     style AllInOne fill:#c8e6c9
     style Multi fill:#b3e5fc
     style MultiHA fill:#ffe0b2
@@ -51,29 +145,29 @@ graph TB
             DB[(Database)]
             MQ[RabbitMQ]
         end
-        
+
         subgraph "ネットワーク機能"
             L3[L3 Agent]
             DHCP[DHCP Agent]
         end
-        
+
         subgraph "コンピュート機能"
             NovaCompute[nova-compute]
             Hypervisor[Hypervisor]
         end
-        
+
         subgraph "ストレージ機能"
             Cinder[Cinder Volume]
         end
     end
-    
+
     User[ユーザー] --> API
     API --> DB
     API --> MQ
     MQ --> NovaCompute
     MQ --> L3
     NovaCompute --> Hypervisor
-    
+
     style API fill:#ffeb3b
     style NovaCompute fill:#c8e6c9
 ```
@@ -108,23 +202,19 @@ graph TB
 
 #### リソース要件 🎓
 
-**最小要件**:
+**最小要件:**
 
-```
-CPU: 4コア（仮想化支援機能必須）
-メモリ: 8GB
-ディスク: 40GB
-NIC: 2つ（管理+外部）
-```
+- CPU: 4コア（仮想化支援機能必須）
+- メモリ: 8GB
+- ディスク: 40GB
+- NIC: 2つ（管理+外部）
 
-**推奨要件**:
+**推奨要件:**
 
-```
-CPU: 8コア
-メモリ: 16GB
-ディスク: 100GB（SSD推奨）
-NIC: 2つ
-```
+- CPU: 8コア
+- メモリ: 16GB
+- ディスク: 100GB（SSD推奨）
+- NIC: 2つ
 
 #### 推奨用途
 
@@ -148,16 +238,16 @@ graph TB
         Controller[コントローラ機能]
         Network[ネットワーク機能]
     end
-    
+
     subgraph "ノード2: コンピュート"
         Compute[コンピュート機能]
     end
-    
+
     User[ユーザー] --> Controller
     Controller <-->|管理NW| Compute
     Network <-->|オーバーレイNW| Compute
     Network --> Internet[外部NW]
-    
+
     style Controller fill:#ffeb3b
     style Network fill:#c8e6c9
     style Compute fill:#b3e5fc
@@ -171,7 +261,7 @@ graph TB
 
 **リソース要件**:
 
-```
+```bash
 ノード1（コントローラ+ネットワーク）:
   CPU: 4コア, メモリ: 8GB, ディスク: 60GB, NIC: 3
 
@@ -186,21 +276,21 @@ graph TB
     subgraph "ノード1: コントローラ"
         Controller[コントローラ<br/>API, DB, Scheduler]
     end
-    
+
     subgraph "ノード2: ネットワーク"
         Network[ネットワーク<br/>L3, DHCP Agent]
     end
-    
+
     subgraph "ノード3: コンピュート"
         Compute[コンピュート<br/>nova-compute, Hypervisor]
     end
-    
+
     User[ユーザー] --> Controller
     Controller <-->|RabbitMQ| Network
     Controller <-->|RabbitMQ| Compute
     Network <-->|オーバーレイ| Compute
     Network --> Internet[インターネット]
-    
+
     style Controller fill:#ffeb3b
     style Network fill:#c8e6c9
     style Compute fill:#b3e5fc
@@ -215,7 +305,7 @@ graph TB
 
 **リソース要件** 🎓:
 
-```
+```bash
 ノード1（コントローラ）:
   CPU: 2-4コア, メモリ: 4-8GB, ディスク: 40-80GB, NIC: 3
 
@@ -248,25 +338,25 @@ graph TB
     subgraph "ノード1: コントローラ"
         Controller[コントローラ]
     end
-    
+
     subgraph "ノード2: ネットワーク"
         Network[ネットワーク]
     end
-    
+
     subgraph "ノード3-4: コンピュート"
         Compute1[コンピュート1]
         Compute2[コンピュート2]
     end
-    
+
     subgraph "ノード5: ストレージ（オプション）"
         Storage[ストレージ]
     end
-    
+
     Controller --> Network
     Controller --> Compute1
     Controller --> Compute2
     Controller -.-> Storage
-    
+
     style Controller fill:#ffeb3b
     style Network fill:#c8e6c9
     style Compute1 fill:#b3e5fc
@@ -301,45 +391,45 @@ graph TB
         HAProxy1[HAProxy1]
         HAProxy2[HAProxy2]
     end
-    
+
     subgraph "コントローラクラスタ"
         Controller1[コントローラ1<br/>192.168.100.11]
         Controller2[コントローラ2<br/>192.168.100.12]
         Controller3[コントローラ3<br/>192.168.100.13]
     end
-    
+
     subgraph "データベースクラスタ"
         DB1[(MariaDB1)]
         DB2[(MariaDB2)]
         DB3[(MariaDB3)]
         Galera[Galera Cluster]
     end
-    
+
     subgraph "メッセージキュー"
         MQ1[RabbitMQ1]
         MQ2[RabbitMQ2]
         MQ3[RabbitMQ3]
     end
-    
+
     User[ユーザー] --> VIP
     VIP --> HAProxy1
     VIP --> HAProxy2
     HAProxy1 --> Controller1
     HAProxy1 --> Controller2
     HAProxy1 --> Controller3
-    
+
     Controller1 --> DB1
     Controller2 --> DB2
     Controller3 --> DB3
-    
+
     DB1 --> Galera
     DB2 --> Galera
     DB3 --> Galera
-    
+
     Controller1 --> MQ1
     Controller2 --> MQ2
     Controller3 --> MQ3
-    
+
     style VIP fill:#ffeb3b
     style Galera fill:#c8e6c9
 ```
@@ -356,14 +446,12 @@ graph TB
 
 #### 最小HA構成のノード数
 
-```
-コントローラ: 3台（奇数台推奨）
-ネットワーク: 2台以上
-コンピュート: 2台以上
----
-最小: 7台
-推奨: 10台以上
-```
+- **コントローラ:** 3台（奇数台推奨）
+- **ネットワーク:** 2台以上
+- **コンピュート:** 2台以上
+
+**最小:** 7台
+**推奨:** 10台以上
 
 #### メリット・デメリット
 
@@ -401,26 +489,26 @@ graph TB
     subgraph "中央サイト"
         CentralController[コントロールプレーン<br/>コントローラ]
     end
-    
+
     subgraph "エッジサイト1"
         Edge1Compute[コンピュートノード]
         Edge1Network[ネットワークノード]
     end
-    
+
     subgraph "エッジサイト2"
         Edge2Compute[コンピュートノード]
         Edge2Network[ネットワークノード]
     end
-    
+
     subgraph "エッジサイト3"
         Edge3Compute[コンピュートノード]
         Edge3Network[ネットワークノード]
     end
-    
+
     CentralController -->|WAN| Edge1Compute
     CentralController -->|WAN| Edge2Compute
     CentralController -->|WAN| Edge3Compute
-    
+
     style CentralController fill:#ffeb3b
     style Edge1Compute fill:#c8e6c9
     style Edge2Compute fill:#c8e6c9
@@ -429,16 +517,16 @@ graph TB
 
 #### 特徴
 
-```
-中央サイト:
+**中央サイト:**
+
 - コントロールプレーン（API、DB、スケジューラ）
 - 全エッジサイトを管理
 
-エッジサイト:
+**エッジサイト:**
+
 - データプレーン（コンピュート、ネットワーク）
 - ローカルでVMを実行
 - レイテンシーが低い
-```
 
 #### 推奨用途
 
@@ -472,12 +560,12 @@ graph LR
         V1[小さいサーバー] --> V2[大きいサーバー]
         V2 --> V3[より大きいサーバー]
     end
-    
+
     subgraph "水平スケール（Scale-Out）"
         H1[サーバー1] --> H2[サーバー1<br/>+<br/>サーバー2]
         H2 --> H3[サーバー1<br/>+<br/>サーバー2<br/>+<br/>サーバー3]
     end
-    
+
     style H3 fill:#c8e6c9
 ```
 
@@ -493,22 +581,23 @@ graph LR
 
 #### コンピュートノードのスケールアウト ⭐
 
-```
+```text
 初期構成:
-コントローラ: 1台
-ネットワーク: 1台
-コンピュート: 2台（20 VM）
+  コントローラ: 1台
+  ネットワーク: 1台
+  コンピュート: 2台（20 VM）
 
-↓ リソース不足
+      ↓ リソース不足
 
 スケールアウト:
-コントローラ: 1台（変更なし）
-ネットワーク: 1台（変更なし）
-コンピュート: 4台（40 VM）← 2台追加
+  コントローラ: 1台（変更なし）
+  ネットワーク: 1台（変更なし）
+  コンピュート: 4台（40 VM）← 2台追加
 
-↓ さらにスケールアウト
+      ↓ さらにスケールアウト
 
-コンピュート: 10台（100 VM）← 6台追加
+最終構成:
+  コンピュート: 10台（100 VM）← 6台追加
 ```
 
 **メリット**:
@@ -525,18 +614,18 @@ graph LR
 
 OpenStackでは、物理リソースを超えてVMにリソースを割り当てる**オーバーコミット**が可能：
 
-```
+```text
 物理サーバー:
-CPU: 16コア
-メモリ: 64GB
+  CPU: 16コア
+  メモリ: 64GB
 
-↓ オーバーコミット設定
+      ↓ オーバーコミット設定
 
 仮想リソース:
-CPU: 256 vCPU（16:1）
-メモリ: 96GB（1.5:1）
+  CPU: 256 vCPU（16:1）
+  メモリ: 96GB（1.5:1）
 
-↓ VMへの割り当て
+      ↓ VMへの割り当て
 
 32台のVM（各8 vCPU, 3GB RAM）を起動可能
 ```
@@ -584,13 +673,12 @@ openstack flavor create \
 
 **設計の考え方**:
 
-```
-ユーザーニーズ:
+**ユーザーニーズ:**
+
 - 開発環境: m1.tiny, m1.small
 - Webサーバー: m1.medium
 - データベース: m1.large（高RAM）
 - AI/ML: gpu.large（GPU付き）
-```
 
 ---
 
@@ -601,15 +689,15 @@ openstack flavor create \
 ```mermaid
 graph TB
     Storage[OpenStackストレージ]
-    
+
     Storage --> Ephemeral[エフェメラルストレージ<br/>一時的]
     Storage --> Cinder[Cinder<br/>ブロックストレージ]
     Storage --> Swift[Swift<br/>オブジェクトストレージ]
-    
+
     Ephemeral --> VM1[VMのルートディスク]
     Cinder --> VM2[追加ディスク<br/>永続化]
     Swift --> Files[ファイル・画像・バックアップ]
-    
+
     style Ephemeral fill:#ffcdd2
     style Cinder fill:#c8e6c9
     style Swift fill:#b3e5fc
@@ -623,19 +711,17 @@ graph TB
 
 #### 特徴
 
-```
-保存場所: コンピュートノードのローカルディスク
-永続性: なし（VM削除時に消失）
-用途: OSのブート、一時データ
-パフォーマンス: 高速（ローカルディスク）
-```
+- **保存場所:** コンピュートノードのローカルディスク
+- **永続性:** なし（VM削除時に消失）
+- **用途:** OSのブート、一時データ
+- **パフォーマンス:** 高速（ローカルディスク）
 
 ```mermaid
 graph LR
     Image[Glanceイメージ] -->|コピー| Ephemeral[エフェメラルディスク<br/>/var/lib/nova/instances/]
     Ephemeral --> VM[VM起動]
     VM -->|削除| Delete[データ消失]
-    
+
     style Delete fill:#ffcdd2
 ```
 
@@ -656,6 +742,8 @@ graph LR
 
 ### 2.3 Cinder（ブロックストレージ）✅
 
+> **基本概念**: Cinderの基本的な仕組みについては [Part 2 - 1.5 Cinder](02_architecture.md#15-cinderブロックストレージサービス) を参照してください。
+
 **Cinder**は、VMに接続する**永続的なボリューム**を提供（≈ AWS EBS）。
 
 #### アーキテクチャ
@@ -666,25 +754,25 @@ graph TB
         CinderAPI[cinder-api]
         CinderScheduler[cinder-scheduler]
     end
-    
+
     subgraph "ストレージノード"
         CinderVolume[cinder-volume]
         Backend[Storage Backend<br/>LVM/Ceph/NFS]
     end
-    
+
     subgraph "コンピュートノード"
         VM[VM]
     end
-    
+
     User[ユーザー] -->|1. ボリューム作成| CinderAPI
     CinderAPI --> CinderScheduler
     CinderScheduler -->|2. ストレージノード選択| CinderVolume
     CinderVolume -->|3. ボリューム作成| Backend
-    
+
     User -->|4. ボリューム接続| CinderAPI
     CinderAPI -->|5. iSCSI接続指示| VM
     VM -->|6. iSCSI接続| Backend
-    
+
     style CinderAPI fill:#c8e6c9
 ```
 
@@ -692,33 +780,33 @@ graph TB
 
 ##### **LVM (Logical Volume Manager)** 🎓
 
-```
-概要: Linuxの論理ボリューム管理
+**概要:** Linuxの論理ボリューム管理
 
-メリット:
-✅ 設定が簡単
-✅ 学習に最適
-✅ 追加ソフトウェア不要
+#### メリット
 
-デメリット:
-❌ 単一ノード（冗長性なし）
-❌ スケールしにくい
-❌ 本番環境には不向き
+- ✅ 設定が簡単
+- ✅ 学習に最適
+- ✅ 追加ソフトウェア不要
 
-推奨環境: 学習、小規模検証
-```
+#### デメリット
 
-**LVMの仕組み**:
+- ❌ 単一ノード（冗長性なし）
+- ❌ スケールしにくい
+- ❌ 本番環境には不向き
 
-```
+**推奨環境:** 学習、小規模検証
+
+#### LVMの仕組み
+
+```text
 物理ディスク: /dev/sdb
-↓
+    ↓
 物理ボリューム（PV）: /dev/sdb
-↓
+    ↓
 ボリュームグループ（VG）: cinder-volumes
-↓
+    ↓
 論理ボリューム（LV）: volume-xxxxx（VMごと）
-↓
+    ↓
 iSCSI経由でVMに接続
 ```
 
@@ -737,33 +825,33 @@ volume_group = cinder-volumes
 
 ##### **Ceph RBD (RADOS Block Device)** 🏢
 
-```
-概要: 分散ストレージシステム
+**概要:** 分散ストレージシステム
 
-メリット:
-✅ 高可用性（自動レプリケーション）
-✅ スケーラブル
-✅ 高性能
-✅ 統合ストレージ（ブロック+オブジェクト+ファイル）
+#### メリット
 
-デメリット:
-❌ 複雑な設定
-❌ 最低3台のストレージノード必要
-❌ 学習コストが高い
+- ✅ 高可用性（自動レプリケーション）
+- ✅ スケーラブル
+- ✅ 高性能
+- ✅ 統合ストレージ（ブロック+オブジェクト+ファイル）
 
-推奨環境: 本番環境、中〜大規模
-```
+#### デメリット
 
-**Cephの仕組み**:
+- ❌ 複雑な設定
+- ❌ 最低3台のストレージノード必要
+- ❌ 学習コストが高い
 
-```
+**推奨環境:** 本番環境、中〜大規模
+
+#### Cephの仕組み
+
+```text
 Cephクラスタ:
-- Monitor（MON）: クラスタ状態管理
-- OSD（Object Storage Daemon）: 実際のデータ保存
-- Manager（MGR）: 管理・監視
+  - Monitor（MON）: クラスタ状態管理
+  - OSD（Object Storage Daemon）: 実際のデータ保存
+  - Manager（MGR）: 管理・監視
 
 データの流れ:
-VM → RBD → Ceph OSD（複数に自動レプリケーション）
+  VM → RBD → Ceph OSD（複数に自動レプリケーション）
 ```
 
 ##### **その他のバックエンド** 💡
@@ -803,37 +891,37 @@ sudo mount /dev/vdb /mnt/data
 ```mermaid
 graph TB
     User[ユーザー/アプリ] -->|REST API| Proxy[Swift Proxy]
-    
+
     subgraph "Swiftクラスタ"
         Proxy --> Account[Account Server]
         Proxy --> Container[Container Server]
         Proxy --> Object[Object Server]
-        
+
         Account --> Storage1[(Storage Node 1)]
         Container --> Storage2[(Storage Node 2)]
         Object --> Storage3[(Storage Node 3)]
     end
-    
+
     Storage1 -.->|レプリカ| Storage2
     Storage2 -.->|レプリカ| Storage3
     Storage3 -.->|レプリカ| Storage1
-    
+
     style Proxy fill:#b3e5fc
 ```
 
-#### 主要コンセプト
+##### 主要コンセプト
 
-```
+```text
 Account: ストレージアカウント（テナント）
-  ↓
+    ↓
 Container: バケット（ファイルのグループ）
-  ↓
+    ↓
 Object: 実際のファイル
 ```
 
 **例**:
 
-```
+```text
 Account: project-A
   Container: images
     Object: photo1.jpg
@@ -854,18 +942,18 @@ Account: project-A
 
 #### メリット・デメリット
 
-**✅ メリット**:
+##### メリット
 
-- 大容量データに対応
-- 高い耐久性（複数レプリカ）
-- REST APIで簡単アクセス
-- スケーラブル
+- ✅ 大容量データに対応
+- ✅ 高い耐久性（複数レプリカ）
+- ✅ REST APIで簡単アクセス
+- ✅ スケーラブル
 
-**❌ デメリット**:
+##### デメリット
 
-- 低レイテンシーが必要な用途には不向き
-- ファイルシステムとして直接マウント不可
-- 部分的な更新ができない（全体を置き換え）
+- ❌ 低レイテンシーが必要な用途には不向き
+- ❌ ファイルシステムとして直接マウント不可
+- ❌ 部分的な更新ができない（全体を置き換え）
 
 #### 使用例 💡
 
@@ -896,19 +984,20 @@ openstack object save my-container file.txt
 
 #### 推奨構成
 
-```
-Cinder:
+**Cinder:**
+
 - バックエンド: LVM
 - ボリュームグループ: 20-50GB
 - 理由: シンプルで理解しやすい
 
-Swift:
+**Swift:**
+
 - 学習環境ではオプション
 - 必要に応じて別途構築
 
-エフェメラル:
+**エフェメラル:**
+
 - デフォルト設定を使用
-```
 
 #### 設定例
 
@@ -927,9 +1016,40 @@ volume_backend_name = LVM
 
 ## 3. ハードウェア要件
 
-### 3.1 学習環境のリソース要件 ✅ 🎓
+### 3.1 構成パターン別のリソース要件 ✅
 
-#### 今回の3ノード構成
+#### パターンA: All-in-One構成 🎓
+
+**最小要件:**
+
+| 項目     | 要件                        |
+| -------- | --------------------------- |
+| CPU      | 4コア（仮想化支援機能必須） |
+| メモリ   | 8GB                         |
+| ディスク | 40GB                        |
+| NIC      | 2つ（管理+外部）            |
+
+**推奨要件:**
+
+- CPU: 8コア
+- メモリ: 16GB
+- ディスク: 100GB（SSD推奨）
+
+#### パターンB: 2ノード構成 🎓
+
+| ノード                        | CPU   | メモリ | ディスク | NIC |
+| ----------------------------- | ----- | ------ | -------- | --- |
+| **コントローラ+ネットワーク** | 4コア | 8GB    | 60GB     | 3   |
+| **コンピュート**              | 4コア | 8GB    | 60GB     | 2   |
+| **合計**                      | 8コア | 16GB   | 120GB    | -   |
+
+**ホストマシン要件:**
+
+- CPU: 10コア以上
+- メモリ: 20GB以上（24GB推奨）
+- ディスク: 150GB以上
+
+#### パターンC: 3ノード構成（標準）⭐ 🎓
 
 | ノード           | CPU      | メモリ  | ディスク  | NIC |
 | ---------------- | -------- | ------- | --------- | --- |
@@ -938,14 +1058,26 @@ volume_backend_name = LVM
 | **コンピュート** | 2-4コア  | 4-8GB   | 40-100GB  | 2   |
 | **合計**         | 6-12コア | 10-20GB | 100-220GB | -   |
 
-**Vagrant + VirtualBox環境**:
+**ホストマシン要件 (Vagrant + VirtualBox):**
 
-```
-ホストマシン（Windows PC）の推奨スペック:
-CPU: 8コア以上（仮想化支援機能必須）
-メモリ: 16GB以上（24GB推奨）
-ディスク: 200GB以上の空き容量（SSD推奨）
-```
+- CPU: 8コア以上（仮想化支援機能必須）
+- メモリ: 16GB以上（24GB推奨）
+- ディスク: 200GB以上の空き容量（SSD推奨）
+
+#### パターンD: 4+ノード構成（拡張）💡
+
+| ノード             | CPU     | メモリ | ディスク | NIC |
+| ------------------ | ------- | ------ | -------- | --- |
+| **コントローラ**   | 4コア   | 8GB    | 80GB     | 3   |
+| **ネットワーク**   | 2-4コア | 4GB    | 40GB     | 3   |
+| **コンピュート×2** | 各4コア | 各8GB  | 各100GB  | 各2 |
+| **合計**           | 14コア  | 28GB   | 320GB    | -   |
+
+**ホストマシン要件:**
+
+- CPU: 16コア以上
+- メモリ: 32GB以上
+- ディスク: 400GB以上（SSD推奨）
 
 ---
 
@@ -961,19 +1093,21 @@ CPU: 8コア以上（仮想化支援機能必須）
 
 #### 大規模本番環境（HA構成）
 
-```
-コントローラ: 3台
-  各: 16コア, 32GB RAM, 200GB SSD, 4 NIC
+**コントローラ: 3台**
 
-ネットワーク: 2台
-  各: 16コア, 32GB RAM, 100GB SSD, 4 NIC
+- 各: 16コア, 32GB RAM, 200GB SSD, 4 NIC
 
-コンピュート: 10台以上
-  各: 32コア, 128GB RAM, 1TB SSD, 4 NIC
+**ネットワーク: 2台**
 
-ストレージ（Ceph）: 3台以上
-  各: 16コア, 64GB RAM, 複数の大容量HDD/SSD
-```
+- 各: 16コア, 32GB RAM, 100GB SSD, 4 NIC
+
+**コンピュート: 10台以上**
+
+- 各: 32コア, 128GB RAM, 1TB SSD, 4 NIC
+
+**ストレージ（Ceph）: 3台以上**
+
+- 各: 16コア, 64GB RAM, 複数の大容量HDD/SSD
 
 ---
 
@@ -981,48 +1115,51 @@ CPU: 8コア以上（仮想化支援機能必須）
 
 #### CPU要件
 
-```
-必須:
-✅ 仮想化支援機能
-  - Intel: VT-x（VMX）
-  - AMD: AMD-V（SVM）
+**必須:**
 
-確認方法（Linux）:
+✅ **仮想化支援機能**
+
+- Intel: VT-x（VMX）
+- AMD: AMD-V（SVM）
+
+**確認方法（Linux）:**
+
+```bash
 grep -E '(vmx|svm)' /proc/cpuinfo
-
-VirtualBox上の入れ子仮想化:
-VirtualBoxの設定で「Nested VT-x/AMD-V」を有効化
 ```
+
+**VirtualBox上の入れ子仮想化:**
+
+- VirtualBoxの設定で「Nested VT-x/AMD-V」を有効化
 
 #### メモリ要件
 
-```
-計算式:
+**計算式:**
+
 必要メモリ = ホストOS + OpenStackサービス + VM用メモリ
 
-例:
-ホストOS: 2GB
-nova-compute等: 1GB
-VM用: 10GB（2GB × 5台）
----
-合計: 13GB
-推奨: 16GB（余裕を持つ）
-```
+**例:**
+
+- ホストOS: 2GB
+- nova-compute等: 1GB
+- VM用: 10GB（2GB × 5台）
+
+**合計:** 13GB
+**推奨:** 16GB（余裕を持つ）
 
 #### ディスク要件
 
-```
-構成:
+**構成:**
+
 - OS用: 30-50GB（SSD推奨）
 - エフェメラルストレージ: 50-500GB（SSD推奨）
 - Cinderボリューム: 別ディスク（容量による）
 
-学習環境:
+**学習環境:**
 単一ディスクでも可（パーティション分割）
 
-本番環境:
+**本番環境:**
 複数ディスクを推奨（性能とデータ保護）
-```
 
 ---
 
@@ -1032,20 +1169,16 @@ VM用: 10GB（2GB × 5台）
 
 **学習環境（3 NIC）** 🎓:
 
-```
-eth0: 管理ネットワーク
-eth1: オーバーレイ + ストレージ
-eth2: 外部ネットワーク
-```
+- eth0: 管理ネットワーク
+- eth1: オーバーレイ + ストレージ
+- eth2: 外部ネットワーク
 
 **本番環境（4 NIC）** 🏢:
 
-```
-eth0: 管理ネットワーク（1Gbps）
-eth1: オーバーレイネットワーク（10Gbps）
-eth2: 外部ネットワーク（10Gbps）
-eth3: ストレージネットワーク（10Gbps）
-```
+- eth0: 管理ネットワーク（1Gbps）
+- eth1: オーバーレイネットワーク（10Gbps）
+- eth2: 外部ネットワーク（10Gbps）
+- eth3: ストレージネットワーク（10Gbps）
 
 #### 帯域幅要件
 
@@ -1064,42 +1197,42 @@ eth3: ストレージネットワーク（10Gbps）
 
 #### Ubuntu（推奨）⭐ 🎓
 
-```
-バージョン: Ubuntu 24.04 LTS
+**バージョン:** Ubuntu 24.04 LTS
 
-メリット:
-✅ OpenStackの公式サポート
-✅ 豊富な日本語情報（Server World等）
-✅ パッケージが最新
-✅ 学習に最適
+#### メリット
 
-推奨理由:
+- ✅ OpenStackの公式サポート
+- ✅ 豊富な日本語情報（Server World等）
+- ✅ パッケージが最新
+- ✅ 学習に最適
+
+#### 推奨理由
+
 - 今回の学習で使用
 - Server Worldの手順が利用可能
-```
 
 #### Rocky Linux / AlmaLinux 💡
 
-```
-バージョン: Rocky Linux 9 / AlmaLinux 9
+**バージョン:** Rocky Linux 9 / AlmaLinux 9
 
-メリット:
-✅ RHEL互換（エンタープライズ向け）
-✅ 安定性重視
-✅ RDO（Red Hat OpenStack）対応
+#### メリット
 
-推奨環境:
+- ✅ RHEL互換（エンタープライズ向け）
+- ✅ 安定性重視
+- ✅ RDO（Red Hat OpenStack）対応
+
+#### 推奨環境
+
 - 本番環境（特にRHEL環境）
 - Packstackを使用する場合
-```
 
 #### その他のOS 📚
 
-| OS  | サポート状況 | 推奨度 |
-| --- | ------------ | ------ |--|
-| **Debian** | コミュニティサポート | △ |
-| **CentOS Stream** | 開発版（本番非推奨） | ❌ |
-| **openSUSE** | コミュニティサポート | △ |
+| OS                | サポート状況         | 推奨度 |
+| ----------------- | -------------------- | ------ |
+| **Debian**        | コミュニティサポート | △      |
+| **CentOS Stream** | 開発版（本番非推奨） | ❌      |
+| **openSUSE**      | コミュニティサポート | △      |
 
 ---
 
@@ -1107,20 +1240,20 @@ eth3: ストレージネットワーク（10Gbps）
 
 #### KVM/QEMU（推奨）⭐
 
-```
-概要: Linuxカーネル組み込みの仮想化技術
+**概要:** Linuxカーネル組み込みの仮想化技術
 
-メリット:
-✅ OpenStackのデフォルト
-✅ 高性能
-✅ Linux標準機能
-✅ 無料
+#### メリット
 
-デメリット:
-❌ Linux専用
+- ✅ OpenStackのデフォルト
+- ✅ 高性能
+- ✅ Linux標準機能
+- ✅ 無料
 
-推奨度: ✅ 学習・本番ともに最推奨
-```
+#### デメリット
+
+- ❌ Linux専用
+
+**推奨度:** ✅ 学習・本番ともに最推奨
 
 **仮想化支援機能の確認**:
 
@@ -1177,5 +1310,5 @@ Part 5では、OpenStackの運用・セキュリティ設計を学びます：
 
 ---
 
-**前へ**: [Part 3: ネットワーク設計ガイド](03_network_design.md)  
+**前へ**: [Part 3: ネットワーク設計ガイド](03_network_design.md)
 **次へ**: [Part 5: 運用・セキュリティ設計](05_operations_security.md)

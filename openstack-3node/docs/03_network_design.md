@@ -2,10 +2,91 @@
 
 ## 目次
 
-1. [OpenStackのネットワーク構成](#1-openstackのネットワーク構成)
-2. [ネットワークタイプの種類と選択](#2-ネットワークタイプの種類と選択)
-3. [Neutronアーキテクチャの深堀り](#3-neutronアーキテクチャの深堀り)
-4. [学習環境でのネットワーク設計例](#4-学習環境でのネットワーク設計例)
+- [Part 3: ネットワーク設計ガイド](#part-3-ネットワーク設計ガイド)
+  - [目次](#目次)
+  - [1. OpenStackのネットワーク構成](#1-openstackのネットワーク構成)
+    - [1.1 4つのネットワークの概要 ✅](#11-4つのネットワークの概要-)
+    - [1.2 管理ネットワーク（Management Network）✅](#12-管理ネットワークmanagement-network)
+      - [通信内容](#通信内容)
+      - [設計のポイント ⭐](#設計のポイント-)
+    - [1.3 オーバーレイ/トンネルネットワーク（Overlay Network）✅](#13-オーバーレイトンネルネットワークoverlay-network)
+      - [仕組み](#仕組み)
+      - [設計のポイント ⭐](#設計のポイント--1)
+    - [1.4 外部ネットワーク（External Network）✅](#14-外部ネットワークexternal-network)
+      - [構成](#構成)
+      - [設計のポイント ⭐](#設計のポイント--2)
+    - [1.5 ストレージネットワーク（Storage Network）💡](#15-ストレージネットワークstorage-network)
+      - [通信内容](#通信内容-1)
+      - [設計のポイント ⭐](#設計のポイント--3)
+    - [1.6 ネットワーク分離の重要性 ⭐](#16-ネットワーク分離の重要性-)
+      - [なぜネットワークを分離するのか](#なぜネットワークを分離するのか)
+      - [トラフィック分離のメリット](#トラフィック分離のメリット)
+    - [1.7 Layer-2 vs Layer-3の設計 💡](#17-layer-2-vs-layer-3の設計-)
+      - [Layer-2設計（推奨されない）📚](#layer-2設計推奨されない)
+      - [Layer-3設計（推奨）⭐](#layer-3設計推奨)
+  - [2. ネットワークタイプの種類と選択](#2-ネットワークタイプの種類と選択)
+    - [2.1 ネットワークタイプの概要 ✅](#21-ネットワークタイプの概要-)
+    - [2.2 LOCAL（ローカル）❌ 📚](#22-localローカル-)
+      - [特徴](#特徴)
+      - [問題点と非推奨理由 ❌](#問題点と非推奨理由-)
+      - [使用例（参考のみ）📚](#使用例参考のみ)
+      - [推奨用途](#推奨用途)
+    - [2.3 FLAT（フラット）✅ 🎓](#23-flatフラット-)
+      - [特徴](#特徴-1)
+      - [主な用途 ⭐](#主な用途-)
+      - [使用例 🎓](#使用例-)
+      - [メリット・デメリット](#メリットデメリット)
+      - [推奨用途](#推奨用途-1)
+    - [2.4 VLAN（仮想LAN）⭐ 🏢](#24-vlan仮想lan-)
+      - [特徴](#特徴-2)
+      - [VLANの仕組み ⭐](#vlanの仕組み-)
+      - [使用例 💡](#使用例--1)
+      - [物理スイッチの設定要件 ⭐](#物理スイッチの設定要件-)
+      - [メリット・デメリット](#メリットデメリット-1)
+      - [推奨用途](#推奨用途-2)
+    - [2.5 GRE（Generic Routing Encapsulation）💡 📚](#25-gregeneric-routing-encapsulation-)
+      - [特徴](#特徴-3)
+      - [GREカプセル化の仕組み 💡](#greカプセル化の仕組み-)
+      - [メリット・デメリット](#メリットデメリット-2)
+      - [使用例（参考のみ）📚](#使用例参考のみ-1)
+      - [推奨用途](#推奨用途-3)
+    - [2.6 VXLAN（Virtual Extensible LAN）✅ 🎓🏢](#26-vxlanvirtual-extensible-lan-)
+      - [特徴](#特徴-4)
+      - [VXLANカプセル化の詳細 ⭐](#vxlanカプセル化の詳細-)
+      - [MTU設定の重要性 ⭐](#mtu設定の重要性-)
+      - [使用例 🎓](#使用例--2)
+      - [メリット・デメリット](#メリットデメリット-3)
+      - [推奨用途](#推奨用途-4)
+    - [2.7 GENEVE（Generic Network Virtualization Encapsulation）💡 📚](#27-genevegeneric-network-virtualization-encapsulation-)
+      - [特徴](#特徴-5)
+      - [VXLANとの比較 💡](#vxlanとの比較-)
+      - [GENEVEの利点 ⭐](#geneveの利点-)
+      - [使用例（参考）📚](#使用例参考)
+      - [メリット・デメリット](#メリットデメリット-4)
+      - [推奨用途](#推奨用途-5)
+    - [2.8 ネットワークタイプの総合比較 ✅](#28-ネットワークタイプの総合比較-)
+      - [学習環境での推奨構成 🎓](#学習環境での推奨構成-)
+      - [本番環境での推奨構成 🏢](#本番環境での推奨構成-)
+  - [3. Neutronアーキテクチャの深堀り](#3-neutronアーキテクチャの深堀り)
+    - [3.1 プロバイダーネットワーク vs テナントネットワーク ⭐](#31-プロバイダーネットワーク-vs-テナントネットワーク-)
+      - [プロバイダーネットワーク](#プロバイダーネットワーク)
+      - [テナントネットワーク](#テナントネットワーク)
+    - [3.2 Neutronのコンポーネント構成 ⭐](#32-neutronのコンポーネント構成-)
+      - [ML2 (Modular Layer 2) Plugin ✅](#ml2-modular-layer-2-plugin-)
+    - [3.3 セキュリティグループとFirewall ⭐](#33-セキュリティグループとfirewall-)
+      - [セキュリティグループ](#セキュリティグループ)
+      - [FWaaS (Firewall as a Service) 💡](#fwaas-firewall-as-a-service-)
+  - [4. 学習環境でのネットワーク設計例](#4-学習環境でのネットワーク設計例)
+    - [4.1 最小構成（2 NIC）🎓](#41-最小構成2-nic)
+    - [4.2 標準構成（3 NIC）⭐ 🎓](#42-標準構成3-nic-)
+    - [4.3 完全分離構成（4 NIC）⭐ 🏢](#43-完全分離構成4-nic-)
+    - [4.4 今回の学習環境構成 ✅ 🎓](#44-今回の学習環境構成--)
+      - [ノード別のネットワーク構成](#ノード別のネットワーク構成)
+      - [IPアドレス割り当て表](#ipアドレス割り当て表)
+      - [ネットワークタイプの選択](#ネットワークタイプの選択)
+  - [まとめ](#まとめ)
+    - [Part 3で学んだこと ✅](#part-3で学んだこと-)
+    - [次のステップ 📚](#次のステップ-)
 
 ---
 
@@ -23,14 +104,14 @@ graph TB
         External[外部ネットワーク<br/>External Network]
         Storage[ストレージネットワーク<br/>Storage Network]
     end
-    
+
     subgraph "用途"
         Management --> API[API通信<br/>管理通信]
         Overlay --> VM[VM間通信<br/>テナント通信]
         External --> Internet[インターネット<br/>外部接続]
         Storage --> Data[ストレージアクセス<br/>大容量データ転送]
     end
-    
+
     style Management fill:#b3e5fc
     style Overlay fill:#c8e6c9
     style External fill:#ffeb3b
@@ -60,14 +141,14 @@ graph LR
         Compute[コンピュート<br/>192.168.100.30]
         Storage[ストレージ<br/>192.168.100.40]
     end
-    
+
     Controller <-->|API通信| Network
     Controller <-->|API通信| Compute
     Controller <-->|API通信| Storage
     Controller <-->|DB接続| Controller
     Controller <-->|RabbitMQ| Network
     Controller <-->|RabbitMQ| Compute
-    
+
     style Controller fill:#ffeb3b
 ```
 
@@ -90,7 +171,7 @@ graph LR
 
 **IPアドレス例** 🎓:
 
-```
+```bash
 ネットワーク: 192.168.100.0/24
 - コントローラ: 192.168.100.10
 - ネットワーク: 192.168.100.20
@@ -113,34 +194,32 @@ graph TB
         VM1[VM1<br/>10.0.0.10]
         VXLAN1[VXLANトンネル]
     end
-    
+
     subgraph "コンピュートノード2"
         VM2[VM2<br/>10.0.0.20]
         VXLAN2[VXLANトンネル]
     end
-    
+
     subgraph "オーバーレイネットワーク"
         Tunnel[VXLANトンネル<br/>192.168.200.0/24]
     end
-    
+
     VM1 -->|パケット| VXLAN1
     VXLAN1 -->|カプセル化| Tunnel
     Tunnel -->|カプセル化| VXLAN2
     VXLAN2 -->|脱カプセル化| VM2
-    
+
     style Tunnel fill:#c8e6c9
 ```
 
 **カプセル化の流れ**:
 
-```
 1. VM1が10.0.0.20宛にパケット送信
 2. コンピュートノード1のOVSがVXLANヘッダーを付加
    （送信元: 192.168.200.31, 宛先: 192.168.200.32）
 3. オーバーレイネットワーク経由で転送
 4. コンピュートノード2のOVSがVXLANヘッダーを除去
 5. VM2がパケットを受信
-```
 
 #### 設計のポイント ⭐
 
@@ -153,7 +232,7 @@ graph TB
 
 **MTUの考慮** 💡:
 
-```
+```bash
 通常のMTU: 1500バイト
 VXLANオーバーヘッド: 約50バイト
 ---
@@ -162,7 +241,7 @@ VXLANオーバーヘッド: 約50バイト
 
 **IPアドレス例** 🎓:
 
-```
+```bash
 ネットワーク: 192.168.200.0/24
 - ネットワークノード: 192.168.200.20
 - コンピュート1: 192.168.200.31
@@ -180,38 +259,36 @@ VXLANオーバーヘッド: 約50バイト
 ```mermaid
 graph TB
     Internet[インターネット]
-    
+
     subgraph "外部ネットワーク"
         Router[物理ルーター<br/>203.0.113.1]
         External[外部ネットワーク<br/>203.0.113.0/24]
     end
-    
+
     subgraph "ネットワークノード"
         L3Agent[L3 Agent<br/>仮想ルーター]
         ExternalIF[外部IF<br/>203.0.113.10]
     end
-    
-    subgraph "VM"
+
+    subgraph "仮想マシン"
         VM[VM<br/>内部IP: 10.0.0.10<br/>Floating IP: 203.0.113.100]
     end
-    
+
     Internet <--> Router
     Router <--> External
     External <--> ExternalIF
     ExternalIF <--> L3Agent
     L3Agent <-->|NAT変換| VM
-    
+
     style External fill:#ffeb3b
 ```
 
 **Floating IPの仕組み** ⭐:
 
-```
 1. VMは内部IPを持つ（例: 10.0.0.10）
 2. Floating IPを割り当て（例: 203.0.113.100）
 3. L3 AgentがNAT変換を実行
 4. 外部から203.0.113.100にアクセス → 10.0.0.10に転送
-```
 
 #### 設計のポイント ⭐
 
@@ -224,7 +301,7 @@ graph TB
 
 **IPアドレス例** 🎓:
 
-```
+```bash
 学習環境（プライベートネットワーク）:
 ネットワーク: 192.168.1.0/24（自宅ルーターと同じセグメント）
 - 外部インターフェース: 192.168.1.200
@@ -250,25 +327,25 @@ graph LR
         VM[VM]
         NovaCompute[nova-compute]
     end
-    
+
     subgraph "ストレージネットワーク"
         Storage[ストレージネットワーク<br/>192.168.150.0/24]
     end
-    
+
     subgraph "ストレージノード"
         Cinder[Cinder Volume<br/>iSCSI/Ceph]
     end
-    
+
     subgraph "コントローラノード"
         Glance[Glance<br/>イメージ配信]
     end
-    
+
     NovaCompute -->|ボリュームアクセス| Storage
     Storage -->|iSCSI/RBD| Cinder
-    
+
     NovaCompute -->|イメージダウンロード| Storage
     Storage --> Glance
-    
+
     style Storage fill:#ffe0b2
 ```
 
@@ -290,7 +367,7 @@ graph LR
 
 **IPアドレス例** 🎓:
 
-```
+```bash
 ネットワーク: 192.168.150.0/24
 - コントローラ（Glance）: 192.168.150.10
 - コンピュート1: 192.168.150.31
@@ -313,7 +390,7 @@ graph TB
         Single --> Problem3[セキュリティリスク]
         Single --> Problem4[トラブルシューティング困難]
     end
-    
+
     subgraph "適切な分離（推奨）"
         Multi[ネットワーク分離]
         Multi --> Benefit1[トラフィック競合なし]
@@ -321,7 +398,7 @@ graph TB
         Multi --> Benefit3[パフォーマンス最適化]
         Multi --> Benefit4[問題の切り分けが容易]
     end
-    
+
     style Problem1 fill:#ffcdd2
     style Problem2 fill:#ffcdd2
     style Problem3 fill:#ffcdd2
@@ -347,25 +424,23 @@ graph TB
 
 #### Layer-2設計（推奨されない）📚
 
-```
 全ノードが同じブロードキャストドメイン
 
-デメリット:
+**デメリット:**
+
 - ブロードキャストストームのリスク
 - スケールしにくい
 - 障害の影響範囲が広い
-```
 
 #### Layer-3設計（推奨）⭐
 
-```
 各ネットワークをルーティングで分離
 
-メリット:
+**メリット:**
+
 - ブロードキャストドメインの分離
 - スケーラビリティ向上
 - 障害の影響を局所化
-```
 
 ---
 
@@ -378,21 +453,21 @@ OpenStackのML2プラグインは、**6種類のネットワークタイプ**を
 ```mermaid
 graph TB
     Types[ネットワークタイプ]
-    
+
     Types --> Local[LOCAL<br/>ローカル]
     Types --> Flat[FLAT<br/>フラット]
     Types --> Vlan[VLAN<br/>仮想LAN]
     Types --> Gre[GRE<br/>トンネル]
     Types --> Vxlan[VXLAN<br/>オーバーレイ]
     Types --> Geneve[GENEVE<br/>次世代]
-    
+
     Local --> Use1[単一ノード]
     Flat --> Use2[外部ネットワーク]
     Vlan --> Use3[プロバイダーネットワーク]
     Gre --> Use4[オーバーレイ/レガシー]
     Vxlan --> Use5[テナントネットワーク/推奨]
     Geneve --> Use6[次世代オーバーレイ]
-    
+
     style Flat fill:#b3e5fc
     style Vxlan fill:#c8e6c9
     style Geneve fill:#c8e6c9
@@ -425,9 +500,9 @@ graph TB
         LocalBridge --> VM1
         LocalBridge --> VM2
     end
-    
+
     Outside[他のノード] -.->|通信不可| LocalBridge
-    
+
     style LocalBridge fill:#ffcdd2
     style Outside fill:#bdbdbd
 ```
@@ -478,26 +553,26 @@ graph TB
     subgraph "物理ネットワーク"
         PhysicalSwitch[物理スイッチ<br/>VLANタグなし]
     end
-    
+
     subgraph "ネットワークノード"
         ExtBridge[外部ブリッジ]
         L3Agent[L3 Agent]
     end
-    
+
     subgraph "コンピュートノード1"
         VM1[VM1]
     end
-    
+
     subgraph "コンピュートノード2"
         VM2[VM2]
     end
-    
+
     Internet[インターネット] --> PhysicalSwitch
     PhysicalSwitch --> ExtBridge
     ExtBridge --> L3Agent
     L3Agent --> VM1
     L3Agent --> VM2
-    
+
     style PhysicalSwitch fill:#b3e5fc
 ```
 
@@ -514,7 +589,7 @@ graph TB
 
 **外部ネットワーク接続**に最適：
 
-```
+```bash
 用途:
 ✅ インターネットへの接続
 ✅ Floating IPの提供
@@ -583,25 +658,25 @@ graph TB
         VLAN200[VLAN 200]
         VLAN300[VLAN 300]
     end
-    
+
     subgraph "OpenStack"
         Network1[ネットワーク1<br/>VLAN 100]
         Network2[ネットワーク2<br/>VLAN 200]
         Network3[ネットワーク3<br/>VLAN 300]
     end
-    
+
     Switch --> VLAN100
     Switch --> VLAN200
     Switch --> VLAN300
-    
+
     VLAN100 --> Network1
     VLAN200 --> Network2
     VLAN300 --> Network3
-    
+
     Network1 --> VM1[VM1]
     Network2 --> VM2[VM2]
     Network3 --> VM3[VM3]
-    
+
     style Switch fill:#ffe0b2
 ```
 
@@ -616,18 +691,66 @@ graph TB
 
 #### VLANの仕組み ⭐
 
-```
-Ethernet Frame:
-[Dest MAC][Src MAC][Type][Data][FCS]
+**通常のイーサネットフレーム**:
 
-↓ VLANタグ追加
+```mermaid
+graph LR
+    A[宛先MAC<br/>6バイト] --> B[送信元MAC<br/>6バイト]
+    B --> C[Type<br/>2バイト]
+    C --> D[Data<br/>可変長]
+    D --> E[FCS<br/>4バイト]
 
-802.1Q Tagged Frame:
-[Dest MAC][Src MAC][VLAN Tag][Type][Data][FCS]
-                    ~~~~~~~~
-                    12bit VLAN ID
-                    (1-4094)
+    style A fill:#e3f2fd
+    style B fill:#e3f2fd
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+    style E fill:#e8f5e9
 ```
+
+**802.1Q VLANタグ付きフレーム**:
+
+```mermaid
+graph LR
+    A[宛先MAC<br/>6バイト] --> B[送信元MAC<br/>6バイト]
+    B --> V[VLANタグ<br/>4バイト]
+    V --> C[Type<br/>2バイト]
+    C --> D[Data<br/>可変長]
+    D --> E[FCS<br/>4バイト]
+
+    style A fill:#e3f2fd
+    style B fill:#e3f2fd
+    style V fill:#ffebee,stroke:#f44336,stroke-width:3px
+    style C fill:#fff3e0
+    style D fill:#f3e5f5
+    style E fill:#e8f5e9
+```
+
+**VLANタグの内訳**:
+
+```mermaid
+graph LR
+    subgraph "VLANタグ (4バイト)"
+        A[TPID<br/>2バイト<br/>0x8100] --> B[TCI<br/>2バイト]
+    end
+
+    subgraph "TCI詳細"
+        C[Priority<br/>3bit] --> D[CFI<br/>1bit] --> E[VLAN ID<br/>12bit<br/>1-4094]
+    end
+
+    B -.-> C
+
+    style A fill:#fff3e0
+    style B fill:#e1f5fe
+    style C fill:#f1f8e9
+    style D fill:#fce4ec
+    style E fill:#ffebee,stroke:#f44336,stroke-width:2px
+```
+
+**ポイント**:
+
+- VLANタグは送信元MACとTypeフィールドの間に挿入される
+- VLAN IDは12bitのため、1～4094までの値が使用可能
+- TPID (Tag Protocol Identifier)が0x8100の場合、VLANタグ付きと判別される
 
 #### 使用例 💡
 
@@ -650,7 +773,7 @@ openstack subnet create \
 
 **トランクポート設定が必須**:
 
-```
+```bash
 # Cisco スイッチの例
 interface GigabitEthernet0/1
   switchport mode trunk
@@ -696,21 +819,21 @@ graph TB
         VM1[VM1<br/>10.0.0.10]
         GRE1[GREトンネル]
     end
-    
+
     subgraph "L3ネットワーク"
         L3Network[IPネットワーク<br/>192.168.200.0/24]
     end
-    
+
     subgraph "コンピュートノード2"
         VM2[VM2<br/>10.0.0.20]
         GRE2[GREトンネル]
     end
-    
+
     VM1 -->|L2 Frame| GRE1
     GRE1 -->|GREカプセル化<br/>IPパケット| L3Network
     L3Network -->|GREカプセル化<br/>IPパケット| GRE2
     GRE2 -->|脱カプセル化<br/>L2 Frame| VM2
-    
+
     style L3Network fill:#ffe0b2
 ```
 
@@ -726,7 +849,7 @@ graph TB
 
 #### GREカプセル化の仕組み 💡
 
-```
+```bash
 元のL2フレーム:
 [Ethernet Header][IP Packet][Data]
 
@@ -784,21 +907,21 @@ graph TB
         VM1[VM1<br/>10.0.0.10<br/>VXLAN 1000]
         VTEP1[VTEP<br/>VXLANカプセル化]
     end
-    
+
     subgraph "物理ネットワーク<br/>L3 IPネットワーク"
         L3Net[UDP/IP Network]
     end
-    
+
     subgraph "コンピュートノード2<br/>192.168.200.32"
         VM2[VM2<br/>10.0.0.20<br/>VXLAN 1000]
         VTEP2[VTEP<br/>VXLAN脱カプセル化]
     end
-    
+
     VM1 -->|Ethernet Frame| VTEP1
-    VTEP1 -->|UDP(4789)<br/>VXLAN Header<br/>VNI=1000| L3Net
-    L3Net -->|UDP(4789)<br/>VXLAN Header<br/>VNI=1000| VTEP2
+    VTEP1 -->|"UDP(4789) + VXLAN Header (VNI=1000)"| L3Net
+    L3Net -->|"UDP(4789) + VXLAN Header (VNI=1000)"| VTEP2
     VTEP2 -->|Ethernet Frame| VM2
-    
+
     style L3Net fill:#c8e6c9
     style VTEP1 fill:#b3e5fc
     style VTEP2 fill:#b3e5fc
@@ -817,7 +940,7 @@ graph TB
 
 #### VXLANカプセル化の詳細 ⭐
 
-```
+```bash
 元のL2フレーム:
 [Ethernet Header][IP Packet][Data]
 
@@ -840,7 +963,7 @@ graph TB
 
 #### MTU設定の重要性 ⭐
 
-```
+```bash
 標準Ethernet MTU: 1500バイト
 VXLANオーバーヘッド: 約50バイト
 ---
@@ -904,15 +1027,15 @@ openstack subnet create \
 ```mermaid
 graph TB
     GENEVE[GENEVE<br/>次世代プロトコル]
-    
+
     GENEVE --> Extensible[拡張可能なヘッダー]
     GENEVE --> Flexible[柔軟なメタデータ]
     GENEVE --> Future[将来の機能追加]
-    
+
     Extensible --> TLV[TLVオプション<br/>可変長フィールド]
     Flexible --> Metadata[セキュリティ<br/>QoS<br/>その他]
     Future --> Innovation[イノベーション対応]
-    
+
     style GENEVE fill:#c8e6c9
 ```
 
@@ -942,7 +1065,7 @@ graph TB
 
 **拡張可能なヘッダー**:
 
-```
+```bash
 VXLANは固定ヘッダー → 将来の機能追加が困難
 
 GENEVEは可変長ヘッダー（TLV形式）:
@@ -999,7 +1122,7 @@ openstack network create \
 
 #### 学習環境での推奨構成 🎓
 
-```
+```bash
 外部ネットワーク: FLAT
   ↓
   シンプルで理解しやすい
@@ -1014,7 +1137,7 @@ openstack network create \
 
 #### 本番環境での推奨構成 🏢
 
-```
+```bash
 外部ネットワーク: FLAT または VLAN
   ↓
   既存インフラとの統合
@@ -1040,23 +1163,23 @@ graph TB
         Provider --> External[外部ネットワーク<br/>FLAT]
         Provider --> ProviderVLAN[プロバイダーVLAN<br/>VLAN]
     end
-    
+
     subgraph "テナントネットワーク"
         Tenant[ユーザーが作成<br/>仮想ネットワーク]
         Tenant --> TenantVXLAN[プライベートネットワーク<br/>VXLAN]
     end
-    
+
     External --> Internet[インターネット]
     ProviderVLAN --> Physical[既存物理ネットワーク]
     TenantVXLAN --> VM[VM間通信]
-    
+
     style Provider fill:#ffeb3b
     style Tenant fill:#c8e6c9
 ```
 
 #### プロバイダーネットワーク
 
-```
+```bash
 作成者: 管理者（admin権限）
 用途: 外部接続、既存インフラとの統合
 特徴:
@@ -1071,7 +1194,7 @@ graph TB
 
 #### テナントネットワーク
 
-```
+```bash
 作成者: 各プロジェクトのユーザー
 用途: プロジェクト内のプライベートネットワーク
 特徴:
@@ -1088,33 +1211,35 @@ graph TB
 
 ### 3.2 Neutronのコンポーネント構成 ⭐
 
+> **詳細なアーキテクチャ解説**: Neutronのコンポーネント間の連携について、詳しくは [Part 2 - 1.3 Neutron](02_architecture.md#13-neutronネットワークサービス) を参照してください。
+
 ```mermaid
 graph TB
     subgraph "コントローラノード"
         NeutronServer[neutron-server<br/>API・司令塔]
         ML2Plugin[ML2 Plugin<br/>ネットワークタイプ管理]
     end
-    
+
     subgraph "ネットワークノード"
         L3Agent[neutron-l3-agent<br/>ルーティング]
         DHCPAgent[neutron-dhcp-agent<br/>DHCP]
         MetadataAgent[neutron-metadata-agent<br/>メタデータ]
         OVSAgentNet[neutron-openvswitch-agent<br/>OVS制御]
     end
-    
+
     subgraph "コンピュートノード"
         OVSAgentComp[neutron-openvswitch-agent<br/>OVS制御]
         OVS[Open vSwitch<br/>仮想スイッチ]
     end
-    
+
     NeutronServer --> ML2Plugin
     ML2Plugin --> L3Agent
     ML2Plugin --> DHCPAgent
     ML2Plugin --> OVSAgentNet
     ML2Plugin --> OVSAgentComp
-    
+
     OVSAgentComp --> OVS
-    
+
     style NeutronServer fill:#ffeb3b
     style L3Agent fill:#c8e6c9
     style DHCPAgent fill:#c8e6c9
@@ -1145,20 +1270,20 @@ graph TB
 graph LR
     Internet[インターネット] -->|SSH: 22| SG[Security Group]
     SG -->|許可| VM[VM]
-    
+
     Internet -->|HTTP: 80| SG
     SG -->|許可| VM
-    
+
     Internet -->|その他| SG
     SG -->|拒否| Deny[X]
-    
+
     style SG fill:#c8e6c9
     style Deny fill:#ffcdd2
 ```
 
 **セキュリティグループ**は、VMレベルの**ステートフルファイアウォール**：
 
-```
+```bash
 動作:
 - デフォルトは全て拒否
 - ルールで明示的に許可
@@ -1189,7 +1314,7 @@ openstack security group rule create \
 
 **FWaaS**は、ルーターレベルのファイアウォール：
 
-```
+```bash
 動作:
 - ルーター単位で適用
 - ネットワーク境界でのフィルタリング
@@ -1212,10 +1337,10 @@ graph TB
         NIC1[NIC1: eth0<br/>192.168.100.x]
         NIC2[NIC2: eth1<br/>192.168.1.x]
     end
-    
+
     NIC1 --> Management[管理ネットワーク<br/>+ オーバーレイ<br/>+ ストレージ]
     NIC2 --> External[外部ネットワーク]
-    
+
     style Management fill:#b3e5fc
     style External fill:#ffeb3b
 ```
@@ -1248,11 +1373,11 @@ graph TB
         NIC2[NIC2: eth1<br/>192.168.200.x]
         NIC3[NIC3: eth2<br/>192.168.1.x]
     end
-    
+
     NIC1 --> Management[管理ネットワーク]
     NIC2 --> Overlay[オーバーレイ<br/>+ ストレージ]
     NIC3 --> External[外部ネットワーク]
-    
+
     style Management fill:#b3e5fc
     style Overlay fill:#c8e6c9
     style External fill:#ffeb3b
@@ -1288,12 +1413,12 @@ graph TB
         NIC3[NIC3: eth2<br/>192.168.1.x]
         NIC4[NIC4: eth3<br/>192.168.150.x]
     end
-    
+
     NIC1 --> Management[管理ネットワーク]
     NIC2 --> Overlay[オーバーレイ]
     NIC3 --> External[外部ネットワーク]
     NIC4 --> Storage[ストレージ]
-    
+
     style Management fill:#b3e5fc
     style Overlay fill:#c8e6c9
     style External fill:#ffeb3b
@@ -1333,13 +1458,13 @@ graph TB
         C2[eth1: 192.168.200.10<br/>オーバーレイ+ストレージ]
         C3[eth2: 192.168.1.200<br/>外部]
     end
-    
+
     subgraph "ネットワークノード"
         N1[eth0: 192.168.100.20<br/>管理]
         N2[eth1: 192.168.200.20<br/>オーバーレイ]
         N3[eth2: 192.168.1.210<br/>外部]
     end
-    
+
     subgraph "コンピュートノード"
         CO1[eth0: 192.168.100.31<br/>管理]
         CO2[eth1: 192.168.200.31<br/>オーバーレイ+ストレージ]
@@ -1395,5 +1520,5 @@ Part 4では、OpenStackのシステム設計を学びます：
 
 ---
 
-**前へ**: [Part 2: OpenStackアーキテクチャの理解](02_architecture.md)  
+**前へ**: [Part 2: OpenStackアーキテクチャの理解](02_architecture.md)
 **次へ**: [Part 4: システム設計ガイド](04_system_design.md)

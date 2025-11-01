@@ -1,12 +1,386 @@
 # 🎯 OpenStack学習環境構築ロードマップ
 
-## 📋 前提条件
+## 📖 このドキュメントの位置づけ
 
-- **採用構成**: 3ノード構成（コントローラ、ネットワーク、コンピュート）
+このドキュメントは**実践的な構築手順書**です。
+
+### ドキュメント体系
+
+- **Part 1～6**: OpenStackの理論、概念、アーキテクチャを学ぶ
+- **このロードマップ**: 実際に手を動かして構築する手順
+
+### 推奨学習フロー
+
+```mermaid
+graph LR
+    A[Part 1～3<br/>概念理解] --> B[このロードマップ<br/>実践構築]
+    B --> C[Part 4～6<br/>運用・セキュリティ]
+
+    style A fill:#e3f2fd
+    style B fill:#c8e6c9
+    style C fill:#fff9c4
+```
+
+1. **Part 1～3を読んで概念を理解**
+   - OpenStackとは何か
+   - アーキテクチャの全体像
+   - ネットワークの仕組み
+
+2. **このロードマップで実際に構築**
+   - 手を動かして理解を深める
+   - トラブルシューティングを体験
+
+3. **Part 4～6で運用・セキュリティを学ぶ**
+   - 本番環境への応用
+   - 運用のベストプラクティス
+
+---
+
+## 📋 前提条件と学習環境の概要
+
+### ホストマシンの要件
+
+| 項目         | 最小要件                    | 推奨要件             |
+| ------------ | --------------------------- | -------------------- |
+| **CPU**      | 6コア（仮想化支援機能必須） | 8コア以上            |
+| **メモリ**   | 16GB                        | 24GB以上             |
+| **ディスク** | 150GB空き容量               | 200GB以上（SSD推奨） |
+| **OS**       | Windows 10/11, macOS, Linux | -                    |
+
+**必要なソフトウェア:**
+
+- VirtualBox 7.0以降
+- Vagrant 2.3以降
+
+**仮想化支援機能:**
+
+- Intel VT-x または AMD-V が有効であること
+- 確認方法は [Phase 1: 環境準備](phase1_environment_setup.md#仮想化支援機能の確認) を参照
+
+### 採用構成
+
+- **構成**: 3ノード構成（Controller、Network、Compute）
 - **環境**: Vagrant + VirtualBox
 - **構築方法**: 手動構築（Server World参照）
 - **目標**: OpenStackの仕組みを深く理解する
 - **プロジェクトリポジトリ**: <https://github.com/y-nosuke/vagrant-samples>
+
+---
+
+## 🏗️ 学習環境の構成詳細
+
+### 3ノード構成の全体像
+
+この学習環境では、OpenStackの各役割を独立したノードに分離し、実際のマルチノード環境に近い構成で学習します。
+
+> **📌 この図の目的**: ノードの役割とサービス間の関係を理解するための**サービス/コンポーネント視点**の図です。どのサービスがどのノードで動作するかを示します。
+
+```mermaid
+graph TB
+    subgraph "ノード1: コントローラ (controller)"
+        Controller[Keystone, Glance, Nova API<br/>Neutron Server, Cinder]
+    end
+
+    subgraph "ノード2: ネットワーク (network)"
+        Network[L3 Agent, DHCP Agent<br/>Metadata Agent]
+    end
+
+    subgraph "ノード3: コンピュート (compute1)"
+        Compute[nova-compute<br/>Hypervisor KVM]
+    end
+
+    User[ユーザー] --> Controller
+    Controller <-->|RabbitMQ<br/>MariaDB| Network
+    Controller <-->|RabbitMQ<br/>MariaDB| Compute
+    Network <-->|VXLAN<br/>テナントNW| Compute
+    Network --> Internet[インターネット<br/>Floating IP]
+
+    style Controller fill:#ffeb3b
+    style Network fill:#c8e6c9
+    style Compute fill:#b3e5fc
+```
+
+### ノード別の役割とリソース
+
+#### コントローラノード
+
+**ホスト名:** controller
+
+**役割:** OpenStackの司令塔
+
+**リソース:**
+
+- CPU: 2-4コア
+- メモリ: 4-8GB
+- ディスク: 40-80GB
+- NIC: 3つ
+
+**ネットワーク:**
+
+- eth1 (管理): 192.168.100.10/24
+- eth2 (オーバーレイ): 192.168.200.10/24
+- eth3 (外部): 192.168.1.200/24
+
+**主なサービス:**
+
+- MariaDB / MySQL
+- RabbitMQ
+- Keystone (認証)
+- Glance (イメージ)
+- Nova API / Scheduler / Conductor
+- Neutron Server
+- Cinder API / Scheduler / Volume
+- Horizon (ダッシュボード)
+
+#### ネットワークノード
+
+**ホスト名:** network
+
+**役割:** ネットワーク機能の実行
+
+**リソース:**
+
+- CPU: 2-4コア
+- メモリ: 2-4GB
+- ディスク: 20-40GB
+- NIC: 3つ
+
+**ネットワーク:**
+
+- eth1 (管理): 192.168.100.20/24
+- eth2 (オーバーレイ): 192.168.200.20/24
+- eth3 (外部): 192.168.1.210/24
+
+**主なサービス:**
+
+- Neutron L3 Agent
+- Neutron DHCP Agent
+- Neutron Metadata Agent
+- Neutron Open vSwitch Agent
+
+#### コンピュートノード
+
+**ホスト名:** compute1
+
+**役割:** VMの実行
+
+**リソース:**
+
+- CPU: 2-4コア（仮想化支援機能必須）
+- メモリ: 4-8GB
+- ディスク: 40-100GB
+- NIC: 2つ
+
+**ネットワーク:**
+
+- eth1 (管理): 192.168.100.31/24
+- eth2 (オーバーレイ): 192.168.200.31/24
+
+**主なサービス:**
+
+- Nova Compute
+- Neutron Open vSwitch Agent
+- Libvirt / KVM
+
+---
+
+## 🌐 ネットワーク構成
+
+### ネットワーク全体構成図
+
+> **📌 この図の目的**: ネットワーク構成とIPアドレス割り当てを理解するための**ネットワーク視点**の図です。どのネットワークにどのIPアドレスが割り当てられているかを示します。
+
+```mermaid
+graph TB
+    subgraph Host["ホストマシン (VirtualBox)"]
+        subgraph MgmtNet["管理ネットワーク<br/>192.168.100.0/24<br/>VirtualBox Internal: mgmt-net"]
+            direction LR
+            C1["controller<br/>(eth1)<br/>192.168.100.10"]
+            N1["network<br/>(eth1)<br/>192.168.100.20"]
+            CO1["compute1<br/>(eth1)<br/>192.168.100.31"]
+
+            C1 --- N1
+            N1 --- CO1
+        end
+
+        subgraph OverlayNet["オーバーレイネットワーク<br/>192.168.200.0/24<br/>VirtualBox Internal: overlay-net<br/>VXLAN用"]
+            direction LR
+            C2["controller<br/>(eth2)<br/>192.168.200.10"]
+            N2["network<br/>(eth2)<br/>192.168.200.20"]
+            CO2["compute1<br/>(eth2)<br/>192.168.200.31"]
+
+            C2 --- N2
+            N2 --- CO2
+        end
+
+        subgraph ExtNet["外部ネットワーク<br/>192.168.1.0/24<br/>VirtualBox Internal: external-net<br/>Floating IP用"]
+            direction LR
+            C3["controller<br/>(eth3)<br/>192.168.1.200"]
+            N3["network<br/>(eth3)<br/>192.168.1.210"]
+
+            C3 --- N3
+        end
+
+        subgraph FIP["Floating IPプール<br/>192.168.1.201 - 192.168.1.220"]
+        end
+    end
+
+    Internet[インターネット] --> ExtNet
+    ExtNet --> FIP
+
+    style MgmtNet fill:#b3e5fc
+    style OverlayNet fill:#c8e6c9
+    style ExtNet fill:#fff9c4
+    style C1 fill:#ffeb3b
+    style C2 fill:#ffeb3b
+    style C3 fill:#ffeb3b
+    style N1 fill:#c8e6c9
+    style N2 fill:#c8e6c9
+    style N3 fill:#c8e6c9
+    style CO1 fill:#81c784
+    style CO2 fill:#81c784
+```
+
+### ネットワーク分離の目的
+
+各ノードは3つの独立したネットワークに接続されています。ネットワークを分離することで、トラフィックを効率的に分離し、セキュリティとパフォーマンスを向上させます。
+
+**管理ネットワーク (192.168.100.0/24)**
+
+- **用途**: API通信、データベース接続、RabbitMQ通信、SSH管理
+- **接続ノード**: 全ノード（controller, network, compute1）
+- **インターフェース**: eth1
+
+**オーバーレイネットワーク (192.168.200.0/24)**
+
+- **用途**: VM間通信（VXLAN）、Glanceイメージ転送、Cinderボリューム転送
+- **接続ノード**: 全ノード（controller, network, compute1）
+- **インターフェース**: eth2
+
+**外部ネットワーク (192.168.1.0/24)**
+
+- **用途**: Floating IP、インターネット接続、プロバイダーネットワーク
+- **接続ノード**: controller, network（compute1は接続なし）
+- **インターフェース**: eth3
+
+### IPアドレス割り当て表
+
+| ノード     | ホスト名   | 管理NW (eth1)  | オーバーレイNW (eth2) | 外部NW (eth3) |
+| ---------- | ---------- | -------------- | --------------------- | ------------- |
+| Controller | controller | 192.168.100.10 | 192.168.200.10        | 192.168.1.200 |
+| Network    | network    | 192.168.100.20 | 192.168.200.20        | 192.168.1.210 |
+| Compute1   | compute1   | 192.168.100.31 | 192.168.200.31        | -             |
+
+**Floating IPプール**: 192.168.1.201 - 192.168.1.220
+
+> **注意**: eth0はVagrant管理用のNATネットワークとして使用されるため、ユーザー定義ネットワークはeth1から開始されます。
+
+### ネットワークタイプの選択
+
+**プロバイダーネットワーク（External）:**
+
+- **タイプ:** FLAT
+- **物理ネットワーク名:** physnet1
+- **対応インターフェース:** eth3 (Controller, Network)
+- **用途:** Floating IP、外部接続
+
+**テナントネットワーク（Private）:**
+
+- **タイプ:** VXLAN
+- **VNI範囲:** 1001-10000（必要に応じて拡張可能）
+- **対応インターフェース:** eth2 (全ノード)
+- **用途:** VM間の分離された通信
+
+---
+
+## 💻 Vagrant + VirtualBox環境
+
+### 環境の特徴
+
+**VirtualBox Internal Network:**
+
+- 各ネットワークは VirtualBox の Internal Network 機能を使用
+- VM間のみ通信可能（完全に隔離された仮想ネットワーク）
+- ホストOSからは直接アクセス不可
+- OpenStackの学習には最適（実際のデータセンターネットワークに近い）
+
+**入れ子仮想化:**
+
+- コンピュートノードでVMを起動するため、入れ子仮想化が必要
+- VirtualBoxの設定で「Nested VT-x/AMD-V」を有効化
+
+### Vagrantfileの設計
+
+Vagrantfileは以下の設計思想で作成されています：
+
+**原則1: 再現性**
+
+- 誰でも同じ環境を構築できる
+- Vagrantfileを共有すれば環境を複製可能
+
+**原則2: 自動化**
+
+- 手動設定を最小化
+- プロビジョニングで初期設定を自動化可能
+
+**原則3: 柔軟性**
+
+- リソースを簡単に調整可能
+- ノード数を容易に変更可能
+
+詳細な設定とカスタマイズ方法は [Phase 1: 環境準備](phase1_environment_setup.md) を参照してください。
+
+---
+
+## 💾 ストレージ設計
+
+### Cinder（ブロックストレージ）
+
+**バックエンド:** LVM
+
+- **ボリュームグループ:** cinder-volumes
+- **サイズ:** 20GB（推奨）
+- **配置:** コントローラノード（学習環境では兼用）
+- **理由:**
+  - シンプルで理解しやすい
+  - 追加ソフトウェア不要
+  - 学習に最適
+
+**設定概要:**
+
+```bash
+# LVMパッケージのインストール
+apt install lvm2
+
+# 物理ボリュームの作成（例: /dev/sdb）
+pvcreate /dev/sdb
+
+# ボリュームグループの作成
+vgcreate cinder-volumes /dev/sdb
+```
+
+### Swift（オブジェクトストレージ）
+
+**構成:** なし（オプション）
+
+- オブジェクトストレージは学習の主眼ではないため、基本構成には含めない
+- 必要に応じて後から追加可能
+
+### エフェメラルストレージ
+
+**場所:** `/var/lib/nova/instances/`
+
+- VMの一時ディスクとして使用
+- コンピュートノードのローカルディスク上に配置
+- サイズ: コンピュートノードのディスク容量に依存
+
+### Glance（イメージストレージ）
+
+**バックエンド:** ファイルシステム
+
+- **場所:** `/var/lib/glance/images/`
+- **配置:** コントローラノード
+- **理由:** シンプルで学習環境に最適
 
 ---
 
@@ -56,12 +430,6 @@ vagrant-samples/
 **Step 1-2: プロジェクトのセットアップ** ⭐⭐⭐
 
 - リポジトリのクローン
-
-  ```bash
-  git clone https://github.com/y-nosuke/vagrant-samples.git
-  cd vagrant-samples/openstack-3node
-  ```
-
 - Vagrantfileの確認と必要に応じた調整
   - メモリ・CPU割り当て
   - ネットワーク設定（管理・オーバーレイ・外部）
@@ -70,26 +438,16 @@ vagrant-samples/
 **Step 1-3: VM起動と基本確認** ⭐⭐⭐
 
 - 3ノードの起動
-
-  ```bash
-  vagrant up
-  ```
-
 - 各ノードへのSSH接続確認
-
-  ```bash
-  vagrant ssh controller
-  vagrant ssh network
-  vagrant ssh compute1
-  ```
-
-- ノード間の疎通確認（ping）
+- ノード間の疎通確認
 
 **学習ポイント**:
 
 - 3つのネットワーク（管理・オーバーレイ・外部）の理解
 - 入れ子仮想化の必要性
 - IPアドレス割り当ての確認
+
+**詳細手順**: [Phase 1: 環境準備](phase1_environment_setup.md)
 
 ---
 
@@ -100,18 +458,9 @@ vagrant-samples/
 **Step 2-1: 全ノード共通設定** ⭐⭐⭐
 
 - hostsファイルの設定（/etc/hosts）
-
-  ```text
-  192.168.100.10 controller
-  192.168.100.20 network
-  192.168.100.31 compute1
-  ```
-
 - NTPによる時刻同期設定
 - OpenStackリポジトリの追加（Ubuntu 24.04 + Epoxy）
 - パッケージの更新
-
-**参考**: [Server World - Phase 2.1](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=1)
 
 **Step 2-2: コントローラノードのデータベース構築** ⭐⭐⭐
 
@@ -120,8 +469,6 @@ vagrant-samples/
 - リモート接続の設定
 - 文字コード設定（UTF-8）
 - OpenStack用データベースの作成準備
-
-**参考**: [Server World - Phase 2.2](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=2)
 
 **Step 2-3: RabbitMQのインストール** ⭐⭐⭐
 
@@ -148,6 +495,9 @@ vagrant-samples/
 - RabbitMQの役割（メッセージキュー）
 - データベースの重要性
 - 各サービスの依存関係
+
+**参考**: [Server World - OpenStack Epoxy](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy)
+**詳細手順**: [Phase 2: 基盤構築](phase2_foundation.md)
 
 ---
 

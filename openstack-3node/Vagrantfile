@@ -9,7 +9,7 @@
 Vagrant.configure("2") do |config|
   # Ubuntu 24.04 LTS (Noble Numbat)
   config.vm.box = "ubuntu/noble64"
-  
+
   # 共通設定
   config.vm.provider "virtualbox" do |vb|
     vb.linked_clone = true
@@ -19,13 +19,13 @@ Vagrant.configure("2") do |config|
 
   # SSH設定
   config.ssh.insert_key = false
-  
+
   #=============================================================================
   # Controller Node
   #=============================================================================
   config.vm.define "controller" do |controller|
     controller.vm.hostname = "controller"
-    
+
     # ネットワーク設定
     # eth0: NAT (Vagrant default)
     # eth1: 管理ネットワーク (Management)
@@ -34,17 +34,17 @@ Vagrant.configure("2") do |config|
     controller.vm.network "private_network", ip: "192.168.200.10", virtualbox__intnet: "overlay-net"
     # eth3: 外部ネットワーク (External)
     controller.vm.network "private_network", ip: "192.168.1.200", virtualbox__intnet: "external-net"
-    
+
     # リソース設定
     controller.vm.provider "virtualbox" do |vb|
       vb.name = "openstack-controller"
       vb.memory = "8192"  # 8GB (推奨: 8GB, 最小: 4GB)
       vb.cpus = 4         # 4コア (推奨: 4, 最小: 2)
-      
+
       # ディスク容量の設定 (必要に応じて調整)
       # デフォルトは約40GB
     end
-    
+
     # プロビジョニング (Phase 2以降で使用)
     # controller.vm.provision "shell", path: "provision/common.sh"
     # controller.vm.provision "shell", path: "provision/controller.sh"
@@ -55,7 +55,7 @@ Vagrant.configure("2") do |config|
   #=============================================================================
   config.vm.define "network" do |network|
     network.vm.hostname = "network"
-    
+
     # ネットワーク設定
     # eth0: NAT (Vagrant default)
     # eth1: 管理ネットワーク (Management)
@@ -64,17 +64,17 @@ Vagrant.configure("2") do |config|
     network.vm.network "private_network", ip: "192.168.200.20", virtualbox__intnet: "overlay-net"
     # eth3: 外部ネットワーク (External)
     network.vm.network "private_network", ip: "192.168.1.210", virtualbox__intnet: "external-net"
-    
+
     # リソース設定
     network.vm.provider "virtualbox" do |vb|
       vb.name = "openstack-network"
       vb.memory = "4096"  # 4GB (推奨: 4GB, 最小: 2GB)
       vb.cpus = 2         # 2コア (推奨: 2-4)
-      
+
       # ディスク容量の設定
       # デフォルトは約40GB
     end
-    
+
     # プロビジョニング (Phase 2以降で使用)
     # network.vm.provision "shell", path: "provision/common.sh"
     # network.vm.provision "shell", path: "provision/network.sh"
@@ -85,28 +85,28 @@ Vagrant.configure("2") do |config|
   #=============================================================================
   config.vm.define "compute1" do |compute|
     compute.vm.hostname = "compute1"
-    
+
     # ネットワーク設定
     # eth0: NAT (Vagrant default)
     # eth1: 管理ネットワーク (Management)
     compute.vm.network "private_network", ip: "192.168.100.31", virtualbox__intnet: "mgmt-net"
     # eth2: オーバーレイ+ストレージネットワーク
     compute.vm.network "private_network", ip: "192.168.200.31", virtualbox__intnet: "overlay-net"
-    
+
     # リソース設定
     compute.vm.provider "virtualbox" do |vb|
       vb.name = "openstack-compute1"
       vb.memory = "8192"  # 8GB (推奨: 8GB, 最小: 4GB)
       vb.cpus = 4         # 4コア (推奨: 4, 最小: 2)
-      
+
       # 入れ子仮想化を有効化（重要！）
       vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
-      
+
       # ディスク容量の設定
       # デフォルトは約40GB
       # 追加ディスクが必要な場合はここで設定
     end
-    
+
     # プロビジョニング (Phase 2以降で使用)
     # compute.vm.provision "shell", path: "provision/common.sh"
     # compute.vm.provision "shell", path: "provision/compute.sh"
@@ -117,11 +117,11 @@ Vagrant.configure("2") do |config|
   #=============================================================================
   # config.vm.define "compute2", autostart: false do |compute|
   #   compute.vm.hostname = "compute2"
-  #   
+  #
   #   # ネットワーク設定
   #   compute.vm.network "private_network", ip: "192.168.100.32", virtualbox__intnet: "mgmt-net"
   #   compute.vm.network "private_network", ip: "192.168.200.32", virtualbox__intnet: "overlay-net"
-  #   
+  #
   #   # リソース設定
   #   compute.vm.provider "virtualbox" do |vb|
   #     vb.name = "openstack-compute2"

@@ -2,9 +2,80 @@
 
 ## 目次
 
-1. [OpenStackとは](#1-openstackとは)
-2. [OpenStack構築方法の選択肢](#2-openstack構築方法の選択肢)
-3. [他のIaaSプラットフォームとの比較](#3-他のiaasプラットフォームとの比較)
+- [Part 1: OpenStack概要と選択肢](#part-1-openstack概要と選択肢)
+  - [目次](#目次)
+  - [1. OpenStackとは](#1-openstackとは)
+    - [1.1 IaaSプラットフォームとしてのOpenStack ✅ 🎓🏢](#11-iaasプラットフォームとしてのopenstack--)
+      - [主な特徴](#主な特徴)
+    - [1.2 OpenStackの歴史と現状（2025年の位置づけ）⭐ 🎓](#12-openstackの歴史と現状2025年の位置づけ-)
+      - [歴史の概要](#歴史の概要)
+      - [2025年の現状](#2025年の現状)
+      - [コミュニティの規模 💡](#コミュニティの規模-)
+    - [1.3 なぜ今OpenStackを学ぶのか ✅ 🎓](#13-なぜ今openstackを学ぶのか--)
+      - [OpenStack学習の価値](#openstack学習の価値)
+      - [学習の推奨パス 💡](#学習の推奨パス-)
+      - [2025年時点での評価](#2025年時点での評価)
+  - [2. OpenStack構築方法の選択肢](#2-openstack構築方法の選択肢)
+    - [2.1 DevStack（開発・テスト向け）✅ 🎓🧪](#21-devstack開発テスト向け-)
+      - [特徴](#特徴)
+      - [メリット・デメリット](#メリットデメリット)
+      - [使用例 💡](#使用例-)
+      - [推奨用途 🎓](#推奨用途-)
+    - [2.2 MicroStack / Sunbeam（小規模環境向け）⭐ 🎓](#22-microstack--sunbeam小規模環境向け-)
+      - [特徴](#特徴-1)
+      - [Sunbeamとの関係 💡](#sunbeamとの関係-)
+      - [メリット・デメリット](#メリットデメリット-1)
+      - [推奨用途 🎓](#推奨用途--1)
+    - [2.3 Packstack（RDO - Red Hat系向け）💡 🧪](#23-packstackrdo---red-hat系向け-)
+      - [特徴](#特徴-2)
+      - [メリット・デメリット](#メリットデメリット-2)
+      - [推奨用途 🧪](#推奨用途--2)
+    - [2.4 Kolla-Ansible（本番環境向け）⭐ 🏢](#24-kolla-ansible本番環境向け-)
+      - [特徴](#特徴-3)
+      - [コンテナ化のメリット ⭐](#コンテナ化のメリット-)
+      - [メリット・デメリット](#メリットデメリット-3)
+      - [推奨用途 🏢](#推奨用途--3)
+    - [2.5 OpenStack-Ansible 💡 🏢](#25-openstack-ansible--)
+      - [特徴](#特徴-4)
+      - [メリット・デメリット](#メリットデメリット-4)
+      - [推奨用途 🏢](#推奨用途--4)
+    - [2.6 手動構築（Server World等）✅ 🎓](#26-手動構築server-world等-)
+      - [特徴](#特徴-5)
+      - [メリット・デメリット](#メリットデメリット-5)
+      - [推奨用途 🎓](#推奨用途--5)
+      - [主な参考サイト 📚](#主な参考サイト-)
+    - [2.7 構築方法の比較表 ✅](#27-構築方法の比較表-)
+      - [学習パスの推奨 🎓](#学習パスの推奨-)
+    - [2.8 Vagrant + VirtualBoxでの学習環境構築 ✅ 🎓](#28-vagrant--virtualboxでの学習環境構築--)
+      - [推奨オプション](#推奨オプション)
+  - [3. 他のIaaSプラットフォームとの比較](#3-他のiaasプラットフォームとの比較)
+    - [3.1 Proxmox VE 💡](#31-proxmox-ve-)
+      - [特徴](#特徴-6)
+      - [OpenStackとの比較](#openstackとの比較)
+      - [メリット・デメリット](#メリットデメリット-6)
+      - [推奨用途](#推奨用途)
+    - [3.2 KubeVirt ⭐](#32-kubevirt-)
+      - [特徴](#特徴-7)
+      - [OpenStackとの関係 💡](#openstackとの関係-)
+      - [メリット・デメリット](#メリットデメリット-7)
+      - [OpenStackからの移行 📚](#openstackからの移行-)
+    - [3.3 Harvester 💡](#33-harvester-)
+      - [特徴](#特徴-8)
+      - [OpenStackとの比較](#openstackとの比較-1)
+      - [メリット・デメリット](#メリットデメリット-8)
+    - [3.4 oVirt / RHV 💡](#34-ovirt--rhv-)
+      - [特徴](#特徴-9)
+      - [OpenStackとの比較](#openstackとの比較-2)
+    - [3.5 IaaSプラットフォーム総合比較表 ✅](#35-iaasプラットフォーム総合比較表-)
+      - [学習の推奨順序 🎓](#学習の推奨順序-)
+    - [3.6 OpenStack学習の意義（再確認）✅](#36-openstack学習の意義再確認)
+      - [なぜOpenStackから始めるべきか](#なぜopenstackから始めるべきか)
+  - [まとめ](#まとめ)
+    - [Part 1で学んだこと ✅](#part-1で学んだこと-)
+    - [今回の学習での選択 🎯](#今回の学習での選択-)
+    - [次のステップ 📚](#次のステップ-)
+  - [参考リンク 📖](#参考リンク-)
+    - [このPartで使用した主なリンク](#このpartで使用した主なリンク)
 
 ---
 
@@ -19,16 +90,16 @@ graph TB
     subgraph "OpenStackプラットフォーム"
         User[ユーザー/管理者] --> Dashboard[Horizon Dashboard]
         User --> API[REST API]
-        
+
         Dashboard --> Core[OpenStackコア]
         API --> Core
-        
+
         Core --> Compute[Nova - コンピュート]
         Core --> Network[Neutron - ネットワーク]
         Core --> Storage[Cinder/Swift - ストレージ]
         Core --> Image[Glance - イメージ]
         Core --> Auth[Keystone - 認証]
-        
+
         Compute --> Physical[物理リソース]
         Network --> Physical
         Storage --> Physical
@@ -64,7 +135,7 @@ timeline
 
 #### 2025年の現状
 
-**最新リリース**: OpenStack 2025.2（現在の安定版）
+**最新リリース**: OpenStack 2025.2 Flamingo（2025年10月リリース）
 
 **重要なトレンド**:
 
@@ -115,7 +186,7 @@ graph LR
     E --> F[Kolla-Ansible<br/>コンテナ化]
     E --> G[KubeVirt<br/>Kubernetes統合]
     E --> H[本番環境構築<br/>HA構成]
-    
+
     style A fill:#e1f5ff
     style B fill:#e1f5ff
     style C fill:#e1f5ff
@@ -140,20 +211,20 @@ OpenStackのデプロイには、目的や規模に応じて様々な方法が�
 ```mermaid
 graph TB
     Start[OpenStack構築] --> Purpose{目的は?}
-    
+
     Purpose -->|学習・検証| Learn[学習向けツール]
     Purpose -->|本番運用| Prod[本番向けツール]
     Purpose -->|詳細理解| Manual[手動構築]
-    
+
     Learn --> DevStack[DevStack]
     Learn --> MicroStack[MicroStack/Sunbeam]
-    
+
     Prod --> Kolla[Kolla-Ansible]
     Prod --> OSA[OpenStack-Ansible]
     Prod --> Packstack[Packstack]
-    
+
     Manual --> ServerWorld[Server World等の<br/>手動構築手順]
-    
+
     style DevStack fill:#c8e6c9
     style MicroStack fill:#c8e6c9
     style ServerWorld fill:#fff9c4
@@ -317,7 +388,7 @@ graph TB
         A1[ホストOS] --> A2[OpenStackサービス<br/>直接インストール]
         A2 --> A3[依存関係の競合<br/>アップグレード困難]
     end
-    
+
     subgraph "Kolla-Ansible"
         B1[ホストOS] --> B2[Docker]
         B2 --> B3[Nova Container]
@@ -327,7 +398,7 @@ graph TB
         B4 --> B6
         B5 --> B6
     end
-    
+
     style B6 fill:#c8e6c9
     style A3 fill:#ffcdd2
 ```
@@ -475,7 +546,7 @@ graph TB
 graph LR
     A[1. MicroStack<br/>クイック体験] --> B[2. 手動構築<br/>深い理解]
     B --> C[3. Kolla-Ansible<br/>本番スキル]
-    
+
     style A fill:#c8e6c9
     style B fill:#fff9c4
     style C fill:#b3e5fc
@@ -523,14 +594,14 @@ OpenStack以外にも、様々なIaaSプラットフォームが存在します�
 graph TB
     IaaS[IaaSプラットフォーム] --> Traditional[従来型]
     IaaS --> NextGen[次世代]
-    
+
     Traditional --> OpenStack[OpenStack]
     Traditional --> Proxmox[Proxmox VE]
     Traditional --> oVirt[oVirt/RHV]
-    
+
     NextGen --> KubeVirt[KubeVirt]
     NextGen --> Harvester[Harvester]
-    
+
     style OpenStack fill:#b3e5fc
     style KubeVirt fill:#c8e6c9
     style Harvester fill:#c8e6c9
@@ -611,12 +682,12 @@ graph TB
         OS1[OpenStack] --> VM1[VM管理]
         K8s1[Kubernetes] --> Pod1[コンテナ管理]
     end
-    
+
     subgraph "KubeVirtのアプローチ"
         K8s2[Kubernetes] --> Pod2[Podとして<br/>コンテナ管理]
         K8s2 --> VM2[Podとして<br/>VM管理]
     end
-    
+
     style K8s2 fill:#c8e6c9
 ```
 
@@ -731,7 +802,7 @@ graph LR
     B -->|シンプル| C[Proxmox VE<br/>実用的]
     B -->|次世代| D[Kubernetes基礎]
     D --> E[KubeVirt<br/>統合環境]
-    
+
     style A fill:#b3e5fc
     style E fill:#c8e6c9
 ```
@@ -787,12 +858,13 @@ Part 2では、OpenStackのアーキテクチャを詳しく学びます：
 
 ## 参考リンク 📖
 
+詳細な参考リンク集は [付録C: 参考リンク集](appendix_c_references.md) を参照してください。
+
+### このPartで使用した主なリンク
+
 - OpenStack公式サイト: <https://www.openstack.org/>
-- OpenStack公式ドキュメント: <https://docs.openstack.org/2025.2/>
+- OpenStack公式ドキュメント: <https://docs.openstack.org/>
 - Server World（日本語手順）: <https://www.server-world.info/>
-- MicroStack: <https://microstack.run/>
-- DevStack: <https://docs.openstack.org/devstack/>
-- Kolla-Ansible: <https://docs.openstack.org/kolla-ansible/>
 
 ---
 

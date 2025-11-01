@@ -2,10 +2,75 @@
 
 ## 目次
 
-1. [セキュリティ設計](#1-セキュリティ設計)
-2. [監視・ロギング](#2-監視ロギング)
-3. [バックアップとディザスタリカバリ](#3-バックアップとディザスタリカバリ)
-4. [その他の検討事項](#4-その他の検討事項)
+- [Part 5: 運用・セキュリティ設計](#part-5-運用セキュリティ設計)
+  - [目次](#目次)
+  - [1. セキュリティ設計](#1-セキュリティ設計)
+    - [1.1 OpenStackセキュリティの重要性 ✅](#11-openstackセキュリティの重要性-)
+    - [1.2 認証とアクセス制御 ✅](#12-認証とアクセス制御-)
+      - [Keystoneによる認証 ⭐](#keystoneによる認証-)
+      - [パスワードポリシー ⭐](#パスワードポリシー-)
+      - [ロールベースのアクセス制御（RBAC）⭐](#ロールベースのアクセス制御rbac)
+      - [多要素認証（MFA）💡 🏢](#多要素認証mfa-)
+    - [1.3 ネットワークセキュリティ ✅](#13-ネットワークセキュリティ-)
+      - [ネットワークセグメンテーション ⭐](#ネットワークセグメンテーション-)
+      - [ファイアウォール設定 ⭐](#ファイアウォール設定-)
+      - [IDS/IPS（侵入検知・防止）💡 🏢](#idsips侵入検知防止-)
+    - [1.4 APIエンドポイントの保護 ⭐](#14-apiエンドポイントの保護-)
+      - [SSL/TLS暗号化 ✅ 🏢](#ssltls暗号化--)
+      - [APIレート制限 💡](#apiレート制限-)
+    - [1.5 データ保護 💡](#15-データ保護-)
+      - [保存データの暗号化 🏢](#保存データの暗号化-)
+      - [Barbican（キー管理サービス）💡](#barbicanキー管理サービス)
+    - [1.6 学習環境 vs 本番環境のセキュリティ ✅](#16-学習環境-vs-本番環境のセキュリティ-)
+  - [2. 監視・ロギング](#2-監視ロギング)
+    - [2.1 監視の重要性 ✅](#21-監視の重要性-)
+    - [2.2 ログ管理 ⭐](#22-ログ管理-)
+      - [OpenStackのログ](#openstackのログ)
+      - [ログレベル ⭐](#ログレベル-)
+      - [監視すべき重要なイベント ✅](#監視すべき重要なイベント-)
+      - [ログの確認方法 🎓](#ログの確認方法-)
+    - [2.3 監視ツール 💡](#23-監視ツール-)
+      - [Horizon Dashboard（基本監視）✅ 🎓](#horizon-dashboard基本監視-)
+      - [Prometheus + Grafana ⭐ 🏢](#prometheus--grafana--)
+      - [Ceilometer / Gnocchi 💡 📚](#ceilometer--gnocchi--)
+        - [機能](#機能)
+        - [注意](#注意)
+      - [その他の監視ツール 📚](#その他の監視ツール-)
+    - [2.4 学習環境での推奨監視 🎓](#24-学習環境での推奨監視-)
+      - [必須](#必須)
+      - [オプション](#オプション)
+      - [不要](#不要)
+  - [3. バックアップとディザスタリカバリ](#3-バックアップとディザスタリカバリ)
+    - [3.1 バックアップ戦略 ⭐](#31-バックアップ戦略-)
+    - [3.2 バックアップ対象 ✅](#32-バックアップ対象-)
+      - [設定ファイル ✅](#設定ファイル-)
+      - [データベース ✅](#データベース-)
+      - [Glanceイメージ ⭐](#glanceイメージ-)
+      - [Cinderボリューム 💡](#cinderボリューム-)
+    - [3.3 バックアップのベストプラクティス ⭐](#33-バックアップのベストプラクティス-)
+      - [3-2-1ルール 🏢](#3-2-1ルール-)
+      - [暗号化 ✅](#暗号化-)
+      - [テストリストア ⭐](#テストリストア-)
+    - [3.4 ディザスタリカバリ（DR）💡 🏢](#34-ディザスタリカバリdr-)
+      - [RTO と RPO 🏢](#rto-と-rpo-)
+      - [DR戦略 🏢](#dr戦略-)
+      - [学習環境でのバックアップ 🎓](#学習環境でのバックアップ-)
+  - [4. その他の検討事項](#4-その他の検討事項)
+    - [4.1 コンプライアンスと規制 💡 🏢](#41-コンプライアンスと規制--)
+      - [主な規制・標準](#主な規制標準)
+      - [Keystoneでのコンプライアンス対応 💡](#keystoneでのコンプライアンス対応-)
+    - [4.2 容量計画（キャパシティプランニング）💡 🏢](#42-容量計画キャパシティプランニング-)
+      - [リソース監視と予測](#リソース監視と予測)
+      - [スケールアウトの計画](#スケールアウトの計画)
+    - [4.3 アップグレード戦略 💡 🏢](#43-アップグレード戦略--)
+      - [OpenStackのバージョンアップ](#openstackのバージョンアップ)
+      - [Kolla-Ansibleでのアップグレード ⭐](#kolla-ansibleでのアップグレード-)
+    - [4.4 ドキュメント化 ✅](#44-ドキュメント化-)
+      - [必要なドキュメント](#必要なドキュメント)
+    - [4.5 学習環境 vs 本番環境の優先順位 ✅](#45-学習環境-vs-本番環境の優先順位-)
+  - [まとめ](#まとめ)
+    - [Part 5で学んだこと ✅](#part-5で学んだこと-)
+    - [次のステップ 📚](#次のステップ-)
 
 ---
 
@@ -18,17 +83,17 @@ OpenStackは、多くのコンポーネントとネットワーク通信で構�
 ```mermaid
 graph TB
     Security[OpenStackセキュリティ]
-    
+
     Security --> Auth[認証・認可]
     Security --> Network[ネットワークセキュリティ]
     Security --> API[API保護]
     Security --> Data[データ保護]
-    
+
     Auth --> Keystone[Keystone<br/>強力な認証]
     Network --> Firewall[ファイアウォール<br/>セグメンテーション]
     API --> SSL[SSL/TLS<br/>暗号化通信]
     Data --> Encryption[暗号化<br/>バックアップ保護]
-    
+
     style Security fill:#ffeb3b
     style Auth fill:#c8e6c9
     style Network fill:#b3e5fc
@@ -49,11 +114,11 @@ sequenceDiagram
     participant User
     participant Keystone
     participant Service
-    
+
     User->>Keystone: ユーザー名+パスワード
     Keystone->>Keystone: 認証
     Keystone->>User: 認証トークン発行
-    
+
     User->>Service: トークン付きAPI要求
     Service->>Keystone: トークン検証
     Keystone->>Service: 検証結果+権限情報
@@ -93,17 +158,17 @@ graph TB
         Member[member]
         Reader[reader]
     end
-    
+
     subgraph "権限"
         AdminPerm[全ての操作<br/>インスタンス作成・削除<br/>ユーザー管理]
         MemberPerm[プロジェクト内の操作<br/>インスタンス作成・削除]
         ReaderPerm[読み取りのみ<br/>情報参照]
     end
-    
+
     Admin --> AdminPerm
     Member --> MemberPerm
     Reader --> ReaderPerm
-    
+
     style AdminPerm fill:#ffcdd2
     style MemberPerm fill:#fff9c4
     style ReaderPerm fill:#c8e6c9
@@ -119,29 +184,28 @@ graph TB
 
 **最小権限の原則** 💡:
 
-```
 各ユーザーには、業務に必要な最小限の権限のみを付与
 
-例:
+**例:**
+
 - 開発者: member（プロジェクト内のVM操作のみ）
 - 監視担当: reader（情報参照のみ）
 - インフラ管理者: admin（システム全体の管理）
-```
 
 #### 多要素認証（MFA）💡 🏢
 
 **本番環境では推奨**:
 
-```
-認証要素の組み合わせ:
+**認証要素の組み合わせ:**
+
 1. 知識: パスワード
 2. 所持: TOTPトークン（Google Authenticator等）
 3. 生体: 指紋認証（オプション）
 
-設定:
-Keystoneに外部認証（LDAP、Active Directory）を統合
-TOTP（Time-based One-Time Password）を有効化
-```
+**設定:**
+
+- Keystoneに外部認証（LDAP、Active Directory）を統合
+- TOTP（Time-based One-Time Password）を有効化
 
 ---
 
@@ -156,25 +220,25 @@ graph TB
     subgraph "DMZ"
         External[外部ネットワーク<br/>インターネット]
     end
-    
+
     subgraph "管理ネットワーク<br/>プライベート"
         Management[管理NW<br/>192.168.100.0/24]
     end
-    
+
     subgraph "テナントネットワーク<br/>分離"
         Tenant[テナントNW<br/>VXLAN分離]
     end
-    
+
     subgraph "ストレージネットワーク<br/>プライベート"
         Storage[ストレージNW<br/>192.168.150.0/24]
     end
-    
+
     Firewall1[ファイアウォール] --> External
     Firewall1 --> Management
-    
+
     Management --> Tenant
     Management --> Storage
-    
+
     style External fill:#ffcdd2
     style Management fill:#c8e6c9
     style Tenant fill:#b3e5fc
@@ -225,16 +289,16 @@ firewall-cmd --add-masquerade --permanent
 
 **本番環境での推奨**:
 
-```
-ツール例:
+**ツール例:**
+
 - Snort: オープンソースIDS/IPS
 - Suricata: 高性能IDS/IPS
 - OSSEC: ホストベースIDS
 
-配置:
+**配置:**
+
 - ネットワークノードに配置
 - 外部ネットワークとの境界で監視
-```
 
 ---
 
@@ -248,7 +312,7 @@ firewall-cmd --add-masquerade --permanent
 graph LR
     User[ユーザー] -->|HTTPS<br/>暗号化| HAProxy[HAProxy<br/>SSL終端]
     HAProxy -->|HTTP| API[OpenStack API]
-    
+
     style HAProxy fill:#c8e6c9
 ```
 
@@ -262,7 +326,7 @@ graph LR
 
 **HAProxy設定例**:
 
-```
+```haproxy
 frontend openstack_api
     bind *:443 ssl crt /etc/ssl/certs/openstack.pem
     default_backend api_servers
@@ -313,17 +377,17 @@ openstack volume create --size 10 --type LUKS encrypted-volume
 
 **暗号鍵を安全に管理**:
 
-```
-Barbicanの役割:
+**Barbicanの役割:**
+
 - 暗号鍵の生成・保存
 - 証明書の管理
 - パスワードの安全な保管
 
-連携:
+**連携:**
+
 - Cinder: ボリューム暗号化
 - Swift: オブジェクト暗号化
 - Octavia: SSL証明書管理
-```
 
 ---
 
@@ -351,17 +415,17 @@ Barbicanの役割:
 ```mermaid
 graph TB
     Monitoring[監視・ロギング]
-    
+
     Monitoring --> Health[ヘルスチェック<br/>サービス死活監視]
     Monitoring --> Performance[パフォーマンス<br/>リソース使用率]
     Monitoring --> Security[セキュリティ<br/>異常アクセス検知]
     Monitoring --> Audit[監査<br/>操作ログ]
-    
+
     Health --> Alert1[アラート通知]
     Performance --> Alert2[容量計画]
     Security --> Alert3[インシデント対応]
     Audit --> Alert4[コンプライアンス]
-    
+
     style Monitoring fill:#ffeb3b
     style Health fill:#c8e6c9
     style Performance fill:#b3e5fc
@@ -387,18 +451,18 @@ graph TB
 
 #### ログレベル ⭐
 
-```
-ログレベルの種類:
-DEBUG: 詳細なデバッグ情報（開発・トラブルシューティング）
-INFO: 一般的な情報（通常動作の記録）
-WARNING: 警告（問題の可能性）
-ERROR: エラー（機能不全）
-CRITICAL: 致命的エラー（システム停止）
+**ログレベルの種類:**
 
-推奨設定:
-学習環境: INFO or DEBUG
-本番環境: WARNING or INFO
-```
+- **DEBUG**: 詳細なデバッグ情報（開発・トラブルシューティング）
+- **INFO**: 一般的な情報（通常動作の記録）
+- **WARNING**: 警告（問題の可能性）
+- **ERROR**: エラー（機能不全）
+- **CRITICAL**: 致命的エラー（システム停止）
+
+**推奨設定:**
+
+- 学習環境: INFO or DEBUG
+- 本番環境: WARNING or INFO
 
 **設定例**:
 
@@ -454,22 +518,23 @@ journalctl -u nova-compute --since "2025-10-30 10:00" --until "2025-10-30 11:00"
 
 **OpenStack標準のWeb管理画面**:
 
-```
-監視可能な項目:
-✅ インスタンスの状態
-✅ リソース使用量（CPU、メモリ、ディスク）
-✅ ネットワークトラフィック
-✅ サービスの稼働状況
+**監視可能な項目:**
 
-メリット:
+- ✅ インスタンスの状態
+- ✅ リソース使用量（CPU、メモリ、ディスク）
+- ✅ ネットワークトラフィック
+- ✅ サービスの稼働状況
+
+**メリット:**
+
 - 追加ツール不要
 - 直感的なUI
 - 基本的な監視に十分
 
-デメリット:
+**デメリット:**
+
 - アラート機能が限定的
 - 詳細なメトリクスには不向き
-```
 
 #### Prometheus + Grafana ⭐ 🏢
 
@@ -481,18 +546,18 @@ graph LR
         Exporter1[Node Exporter<br/>システムメトリクス]
         Exporter2[OpenStack Exporter<br/>OpenStackメトリクス]
     end
-    
+
     Prometheus[Prometheus<br/>メトリクス収集・保存]
-    
+
     Grafana[Grafana<br/>可視化・ダッシュボード]
-    
+
     Alertmanager[Alertmanager<br/>アラート通知]
-    
+
     Exporter1 --> Prometheus
     Exporter2 --> Prometheus
     Prometheus --> Grafana
     Prometheus --> Alertmanager
-    
+
     style Prometheus fill:#c8e6c9
     style Grafana fill:#b3e5fc
 ```
@@ -507,17 +572,17 @@ graph LR
 
 **OpenStack純正のテレメトリーサービス**:
 
-```
-機能:
+##### 機能
+
 - リソース使用量の収集
 - 課金データの生成
 - パフォーマンス分析
 
-注意:
+##### 注意
+
 - 高いリソース要件
 - 複雑な設定
 - 学習環境では不要
-```
 
 #### その他の監視ツール 📚
 
@@ -533,20 +598,21 @@ graph LR
 
 **最小限の監視**で十分：
 
-```
-必須:
-✅ Horizon Dashboard
-✅ journalctl / syslog
-✅ OpenStack CLIでの状態確認
+#### 必須
 
-オプション:
-△ Prometheus + Grafana（学習後期）
+- ✅ Horizon Dashboard
+- ✅ journalctl / syslog
+- ✅ OpenStack CLIでの状態確認
 
-不要:
-❌ Ceilometer
-❌ ELK Stack
-❌ 商用監視ツール
-```
+#### オプション
+
+- △ Prometheus + Grafana（学習後期）
+
+#### 不要
+
+- ❌ Ceilometer
+- ❌ ELK Stack
+- ❌ 商用監視ツール
 
 **基本的なヘルスチェック**:
 
@@ -574,17 +640,17 @@ journalctl -u nova-compute --since "1 hour ago"
 ```mermaid
 graph TB
     Backup[バックアップ対象]
-    
+
     Backup --> Config[設定ファイル]
     Backup --> DB[(データベース)]
     Backup --> Images[Glanceイメージ]
     Backup --> Volumes[Cinderボリューム]
-    
+
     Config --> Priority1[✅ 必須<br/>毎日]
     DB --> Priority1
     Images --> Priority2[⭐ 重要<br/>週次]
     Volumes --> Priority3[💡 推奨<br/>随時]
-    
+
     style Priority1 fill:#c8e6c9
     style Priority2 fill:#fff9c4
     style Priority3 fill:#b3e5fc
@@ -598,18 +664,17 @@ graph TB
 
 **最も重要なバックアップ対象**:
 
-```
-バックアップすべきディレクトリ:
-/etc/nova/
-/etc/neutron/
-/etc/cinder/
-/etc/glance/
-/etc/keystone/
-/etc/horizon/
+**バックアップすべきディレクトリ:**
 
-頻度: 毎日 or 設定変更時
-保存先: 別サーバーまたはオブジェクトストレージ
-```
+- `/etc/nova/`
+- `/etc/neutron/`
+- `/etc/cinder/`
+- `/etc/glance/`
+- `/etc/keystone/`
+- `/etc/horizon/`
+
+**頻度:** 毎日 or 設定変更時
+**保存先:** 別サーバーまたはオブジェクトストレージ
 
 **バックアップスクリプト例**:
 
@@ -638,8 +703,8 @@ find ${BACKUP_DIR} -type d -mtime +7 -exec rm -rf {} \;
 
 **全ての状態情報を保持**:
 
-```
-バックアップすべきデータベース:
+**バックアップすべきデータベース:**
+
 - nova
 - nova_api
 - nova_cell0
@@ -648,9 +713,8 @@ find ${BACKUP_DIR} -type d -mtime +7 -exec rm -rf {} \;
 - glance
 - keystone
 
-頻度: 毎日
-方法: mysqldump または mysqlbackup
-```
+**頻度:** 毎日
+**方法:** mysqldump または mysqlbackup
 
 **バックアップスクリプト例**:
 
@@ -675,14 +739,13 @@ find ${BACKUP_DIR} -name "*.sql.gz" -mtime +7 -delete
 
 #### Glanceイメージ ⭐
 
-```
-バックアップ対象:
+**バックアップ対象:**
+
 - OSイメージファイル
 - イメージメタデータ（データベースに含まれる）
 
-頻度: 週次 or イメージ追加時
-保存先: 別ストレージまたはオブジェクトストレージ
-```
+**頻度:** 週次 or イメージ追加時
+**保存先:** 別ストレージまたはオブジェクトストレージ
 
 **バックアップ方法**:
 
@@ -693,14 +756,13 @@ tar czf glance-images-$(date +%Y%m%d).tar.gz /var/lib/glance/images/
 
 #### Cinderボリューム 💡
 
-```
-バックアップ方法:
+**バックアップ方法:**
+
 1. Cinderスナップショット機能
 2. スナップショットからボリューム作成
 3. 定期的なバックアップジョブ
 
-頻度: データの重要度に応じて
-```
+**頻度:** データの重要度に応じて
 
 **スナップショット作成**:
 
@@ -718,28 +780,29 @@ openstack volume create --snapshot my-snapshot restored-volume
 
 #### 3-2-1ルール 🏢
 
-```
-3: データのコピーを3つ作成
-2: 異なるメディアに2つ保存
-1: 1つはオフサイト（別の場所）に保存
+**3-2-1ルール:**
 
-例:
-コピー1: 本番サーバー
-コピー2: バックアップサーバー（同じデータセンター）
-コピー3: クラウドストレージ or リモートサイト
-```
+- **3**: データのコピーを3つ作成
+- **2**: 異なるメディアに2つ保存
+- **1**: 1つはオフサイト（別の場所）に保存
+
+**例:**
+
+- コピー1: 本番サーバー
+- コピー2: バックアップサーバー（同じデータセンター）
+- コピー3: クラウドストレージ or リモートサイト
 
 #### 暗号化 ✅
 
-```
-バックアップは必ず暗号化:
+**バックアップは必ず暗号化:**
+
 - 保存時の暗号化
 - 転送時の暗号化（rsync over SSH等）
 
-ツール例:
+**ツール例:**
+
 - GPG: ファイル暗号化
 - Restic: 暗号化バックアップツール
-```
 
 **暗号化バックアップ例**:
 
@@ -753,14 +816,13 @@ gpg --decrypt nova-config.tar.gz.gpg | tar xzf -
 
 #### テストリストア ⭐
 
-```
-バックアップは定期的にテスト:
+**バックアップは定期的にテスト:**
+
 - 月次でリストアテスト実施
 - 手順書の更新
 - リストア時間の測定
 
-重要: バックアップできていてもリストアできなければ意味がない
-```
+**重要:** バックアップできていてもリストアできなければ意味がない
 
 ---
 
@@ -768,18 +830,19 @@ gpg --decrypt nova-config.tar.gz.gpg | tar xzf -
 
 #### RTO と RPO 🏢
 
-```
-RTO (Recovery Time Objective):
+**RTO (Recovery Time Objective):**
+
 - システム復旧までの許容時間
 - 例: 4時間以内にサービス再開
 
-RPO (Recovery Point Objective):
+**RPO (Recovery Point Objective):**
+
 - データ損失の許容範囲
 - 例: 1時間分のデータ損失まで許容
 
-設計:
+**設計:**
+
 RTO/RPOに基づいてバックアップ頻度と復旧手順を決定
-```
 
 #### DR戦略 🏢
 
@@ -793,19 +856,20 @@ RTO/RPOに基づいてバックアップ頻度と復旧手順を決定
 
 **最小限で十分**:
 
-```
-必須:
-✅ 設定ファイルのバックアップ
-✅ データベースのバックアップ
+**必須:**
 
-推奨:
-💡 Vagrantfileの保存（再構築用）
+- ✅ 設定ファイルのバックアップ
+- ✅ データベースのバックアップ
 
-不要:
-❌ DR戦略
-❌ 複雑なバックアップスケジュール
-❌ オフサイトバックアップ
-```
+**推奨:**
+
+- 💡 Vagrantfileの保存（再構築用）
+
+**不要:**
+
+- ❌ DR戦略
+- ❌ 複雑なバックアップスケジュール
+- ❌ オフサイトバックアップ
 
 ---
 
@@ -826,13 +890,15 @@ RTO/RPOに基づいてバックアップ頻度と復旧手順を決定
 
 #### Keystoneでのコンプライアンス対応 💡
 
-```
-機能:
+**機能:**
+
 - 監査ログ: 全ての操作を記録
 - アクセス制御: 最小権限の原則
 - データ保持ポリシー: ログの保存期間設定
 
-設定例:
+**設定例:**
+
+```ini
 [audit]
 enabled = true
 audit_map_file = /etc/keystone/api_audit_map.conf
@@ -844,30 +910,31 @@ audit_map_file = /etc/keystone/api_audit_map.conf
 
 #### リソース監視と予測
 
-```
-監視項目:
+**監視項目:**
+
 - コンピュートノードのCPU/メモリ使用率
 - ストレージの使用量と増加率
 - ネットワーク帯域の使用状況
 
-予測:
+**予測:**
+
 現在の使用傾向から将来のリソース需要を予測
-例: 月10%増加 → 6ヶ月後に容量不足
-```
+
+**例:** 月10%増加 → 6ヶ月後に容量不足
 
 #### スケールアウトの計画
 
-```
-閾値設定:
+**閾値設定:**
+
 - CPU使用率 70%でアラート
 - メモリ使用率 80%でアラート
 - ディスク使用率 85%でアラート
 
-アクション:
+**アクション:**
+
 - コンピュートノード追加
 - ストレージ拡張
 - ネットワーク帯域増強
-```
 
 ---
 
@@ -875,31 +942,31 @@ audit_map_file = /etc/keystone/api_audit_map.conf
 
 #### OpenStackのバージョンアップ
 
-```
-OpenStackのリリースサイクル:
+**OpenStackのリリースサイクル:**
+
 - 6ヶ月ごとに新バージョン
 - 各バージョンは18ヶ月サポート
 - LTS版も存在（より長期サポート）
 
-アップグレード方針:
+**アップグレード方針:**
+
 - 計画的なアップグレード
 - テスト環境での事前検証
 - ローリングアップグレード（無停止）
-```
 
 #### Kolla-Ansibleでのアップグレード ⭐
 
-```
-メリット:
-✅ コンテナ化により簡単
-✅ ローリングアップグレード対応
-✅ ロールバック可能
+**メリット:**
 
-手順:
+- ✅ コンテナ化により簡単
+- ✅ ローリングアップグレード対応
+- ✅ ロールバック可能
+
+**手順:**
+
 1. 新バージョンのイメージをpull
 2. コンテナを順次更新
 3. 問題があれば旧イメージにロールバック
-```
 
 ---
 
@@ -909,23 +976,24 @@ OpenStackのリリースサイクル:
 
 #### 必要なドキュメント
 
-```
-構成管理:
-✅ ネットワーク図
-✅ IPアドレス管理表
-✅ サーバー構成一覧
+**構成管理:**
 
-手順書:
-✅ インストール手順
-✅ バックアップ・リストア手順
-✅ トラブルシューティング手順
-✅ アップグレード手順
+- ✅ ネットワーク図
+- ✅ IPアドレス管理表
+- ✅ サーバー構成一覧
 
-運用マニュアル:
-✅ 日常運用タスク
-✅ 監視項目とアラート対応
-✅ エスカレーション手順
-```
+**手順書:**
+
+- ✅ インストール手順
+- ✅ バックアップ・リストア手順
+- ✅ トラブルシューティング手順
+- ✅ アップグレード手順
+
+**運用マニュアル:**
+
+- ✅ 日常運用タスク
+- ✅ 監視項目とアラート対応
+- ✅ エスカレーション手順
 
 ---
 
@@ -981,5 +1049,5 @@ Part 6では、実践ガイドと構成例を学びます：
 
 ---
 
-**前へ**: [Part 4: システム設計ガイド](04_system_design.md)  
+**前へ**: [Part 4: システム設計ガイド](04_system_design.md)
 **次へ**: [Part 6: 実践ガイドと構成例](06_practical_guide.md)

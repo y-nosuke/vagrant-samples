@@ -2,9 +2,87 @@
 
 ## 目次
 
-1. [OpenStackの主要コンポーネント](#1-openstackの主要コンポーネント)
-2. [ノード構成の考え方](#2-ノード構成の考え方)
-3. [コンポーネント間の連携](#3-コンポーネント間の連携)
+- [Part 2: OpenStackアーキテクチャの理解](#part-2-openstackアーキテクチャの理解)
+  - [目次](#目次)
+  - [1. OpenStackの主要コンポーネント](#1-openstackの主要コンポーネント)
+    - [1.1 Keystone（認証・認可サービス）✅ 🎓🏢](#11-keystone認証認可サービス-)
+      - [主な機能](#主な機能)
+      - [主要概念 ⭐](#主要概念-)
+      - [認証フロー 💡](#認証フロー-)
+      - [Keystoneの重要性 ✅](#keystoneの重要性-)
+    - [1.2 Nova（コンピュートサービス）✅ 🎓🏢](#12-novaコンピュートサービス-)
+      - [主な機能](#主な機能-1)
+      - [Novaのコンポーネント構成 ⭐](#novaのコンポーネント構成-)
+      - [VMインスタンス作成の流れ 💡](#vmインスタンス作成の流れ-)
+      - [フレーバーとイメージ ⭐](#フレーバーとイメージ-)
+    - [1.3 Neutron（ネットワークサービス）✅ 🎓🏢](#13-neutronネットワークサービス-)
+      - [主な機能](#主な機能-2)
+      - [Neutronのアーキテクチャ（重要） ⭐](#neutronのアーキテクチャ重要-)
+      - [Neutron ServerとL3 Agentの違い（重要ポイント）✅](#neutron-serverとl3-agentの違い重要ポイント)
+      - [例で理解する 💡](#例で理解する-)
+      - [DHCP Agentの役割 ⭐](#dhcp-agentの役割-)
+      - [その他のNeutronエージェント 💡](#その他のneutronエージェント-)
+    - [1.4 Glance（イメージサービス）✅ 🎓🏢](#14-glanceイメージサービス-)
+      - [主な機能](#主な機能-3)
+      - [Glanceのアーキテクチャ ⭐](#glanceのアーキテクチャ-)
+      - [イメージの種類 💡](#イメージの種類-)
+      - [VM作成時のイメージ取得フロー 💡](#vm作成時のイメージ取得フロー-)
+    - [1.5 Cinder（ブロックストレージサービス）✅ 🎓🏢](#15-cinderブロックストレージサービス-)
+      - [主な機能](#主な機能-4)
+      - [AWSとの対比 ⭐](#awsとの対比-)
+      - [Cinderのアーキテクチャ ⭐](#cinderのアーキテクチャ-)
+      - [Cinderのバックエンド 💡](#cinderのバックエンド-)
+      - [ボリュームのライフサイクル 💡](#ボリュームのライフサイクル-)
+    - [1.6 Swift（オブジェクトストレージサービス）⭐ 🏢](#16-swiftオブジェクトストレージサービス-)
+      - [主な機能](#主な機能-5)
+      - [AWSとの対比 ⭐](#awsとの対比--1)
+      - [CinderとSwiftの違い ✅](#cinderとswiftの違い-)
+    - [1.7 Horizon（ダッシュボード）✅ 🎓🏢](#17-horizonダッシュボード-)
+      - [主な機能](#主な機能-6)
+      - [Horizonの位置づけ 💡](#horizonの位置づけ-)
+    - [1.8 その他の重要なコンポーネント 💡](#18-その他の重要なコンポーネント-)
+      - [Heat（オーケストレーション）📚 🏢](#heatオーケストレーション-)
+      - [Ceilometer（メトリクス）📚 🏢](#ceilometerメトリクス-)
+      - [Barbican（シークレット管理）📚 🏢](#barbicanシークレット管理-)
+  - [2. ノード構成の考え方](#2-ノード構成の考え方)
+    - [2.1 コントローラノード ✅ 🎓🏢](#21-コントローラノード--)
+      - [役割：指示役・管理役](#役割指示役管理役)
+      - [主なコンポーネント ⭐](#主なコンポーネント-)
+      - [会社に例えると 💡](#会社に例えると-)
+      - [ハードウェア要件 🎓](#ハードウェア要件-)
+    - [2.2 コンピュートノード ✅ 🎓🏢](#22-コンピュートノード--)
+      - [役割：VMの実行環境](#役割vmの実行環境)
+      - [主なコンポーネント ⭐](#主なコンポーネント--1)
+      - [会社に例えると 💡](#会社に例えると--1)
+      - [重要な機能：仮想化支援 ✅](#重要な機能仮想化支援-)
+      - [ハードウェア要件 🎓](#ハードウェア要件--1)
+      - [スケールアウト ⭐](#スケールアウト-)
+    - [2.3 ネットワークノード ✅ 🎓🏢](#23-ネットワークノード--)
+      - [役割：実際のネットワーク処理](#役割実際のネットワーク処理)
+      - [主なコンポーネント（再確認）⭐](#主なコンポーネント再確認)
+      - [Neutron Serverとの関係（再確認）✅](#neutron-serverとの関係再確認)
+      - [会社に例えると 💡](#会社に例えると--2)
+      - [ハードウェア要件 🎓](#ハードウェア要件--2)
+    - [2.4 ストレージノード ⭐ 🏢](#24-ストレージノード--)
+      - [役割：データの永続化](#役割データの永続化)
+      - [Cinderストレージノード ⭐](#cinderストレージノード-)
+      - [Swiftストレージノード 💡](#swiftストレージノード-)
+      - [会社に例えると 💡](#会社に例えると--3)
+      - [ハードウェア要件 🎓](#ハードウェア要件--3)
+    - [2.5 ノード役割のまとめ ✅](#25-ノード役割のまとめ-)
+      - [各ノードの比較表 ✅](#各ノードの比較表-)
+  - [3. コンポーネント間の連携](#3-コンポーネント間の連携)
+    - [3.1 メッセージキュー（RabbitMQ）の役割 ✅](#31-メッセージキューrabbitmqの役割-)
+      - [メッセージキューのメリット ⭐](#メッセージキューのメリット-)
+    - [3.2 データベース（MariaDB/MySQL）の役割 ✅](#32-データベースmariadbmysqlの役割-)
+      - [保存される情報 ⭐](#保存される情報-)
+    - [3.3 API連携のフロー ✅](#33-api連携のフロー-)
+      - [VM作成の完全なフロー 💡](#vm作成の完全なフロー-)
+    - [3.4 コンポーネント間の依存関係 ⭐](#34-コンポーネント間の依存関係-)
+      - [起動順序 ✅](#起動順序-)
+  - [まとめ](#まとめ)
+    - [Part 2で学んだこと ✅](#part-2で学んだこと-)
+    - [次のステップ 📚](#次のステップ-)
 
 ---
 
@@ -23,29 +101,29 @@ graph TB
         Cinder[Cinder<br/>ブロックストレージ]
         Swift[Swift<br/>オブジェクトストレージ]
     end
-    
+
     subgraph "バックエンドサービス"
         DB[(MariaDB/MySQL<br/>データベース)]
         MQ[RabbitMQ<br/>メッセージキュー]
     end
-    
+
     Horizon --> Keystone
     Horizon --> Nova
     Horizon --> Neutron
-    
+
     Nova --> Keystone
     Neutron --> Keystone
     Glance --> Keystone
     Cinder --> Keystone
-    
+
     Nova --> MQ
     Neutron --> MQ
-    
+
     Nova --> DB
     Neutron --> DB
     Glance --> DB
     Cinder --> DB
-    
+
     style Keystone fill:#ffb3ba
     style Nova fill:#bae1ff
     style Neutron fill:#baffc9
@@ -78,7 +156,7 @@ graph TB
     Token --> API[他のサービスへのAPI呼び出し]
     API --> Verify[トークン検証]
     Verify --> Keystone
-    
+
     style Keystone fill:#ffb3ba
 ```
 
@@ -97,7 +175,7 @@ sequenceDiagram
     participant User as ユーザー
     participant Keystone as Keystone
     participant Nova as Nova API
-    
+
     User->>Keystone: 1. ユーザー名/パスワード
     Keystone->>Keystone: 2. 認証確認
     Keystone->>User: 3. トークン発行
@@ -140,19 +218,19 @@ graph TB
         Scheduler[nova-scheduler<br/>配置決定]
         Console[nova-novncproxy<br/>コンソールプロキシ]
     end
-    
+
     subgraph "コンピュートノード"
         Compute[nova-compute<br/>VMライフサイクル管理]
         Hypervisor[ハイパーバイザー<br/>KVM/QEMU]
     end
-    
+
     API --> Conductor
     API --> Scheduler
     Scheduler --> Compute
     Conductor --> DB[(Database)]
     Compute --> Hypervisor
     Hypervisor --> VM[仮想マシン]
-    
+
     style API fill:#bae1ff
     style Compute fill:#bae1ff
 ```
@@ -176,7 +254,7 @@ sequenceDiagram
     participant Scheduler as nova-scheduler
     participant Compute as nova-compute
     participant Hypervisor as KVM/QEMU
-    
+
     User->>API: 1. VMインスタンス作成リクエスト
     API->>Scheduler: 2. スケジューリング依頼
     Scheduler->>Scheduler: 3. 最適なコンピュートノード選択
@@ -191,7 +269,7 @@ sequenceDiagram
 
 **フレーバー（Flavor）**: VMのスペックテンプレート
 
-```
+```bash
 例：
 - m1.tiny:   1 vCPU, 512MB RAM, 1GB Disk
 - m1.small:  1 vCPU, 2GB RAM, 20GB Disk
@@ -228,22 +306,22 @@ graph TB
         API --> DB[(Database)]
         API --> MQ[RabbitMQ]
     end
-    
+
     subgraph "ネットワークノード"
         MQ --> L3[L3 Agent<br/>ルーター制御]
         MQ --> DHCP[DHCP Agent<br/>DHCP制御]
         MQ --> Meta[Metadata Agent<br/>メタデータ提供]
-        
+
         L3 --> Router[Linux<br/>ネットワーク名前空間]
         DHCP --> DHCPns[dnsmasq<br/>DHCPサーバー]
     end
-    
+
     subgraph "コンピュートノード"
         MQ --> OVS[OVS Agent<br/>仮想スイッチ制御]
         OVS --> Bridge[OVS Bridge]
         Bridge --> VM[VM vNIC]
     end
-    
+
     style API fill:#baffc9
     style L3 fill:#baffc9
     style DHCP fill:#baffc9
@@ -260,7 +338,7 @@ graph LR
     User[ユーザー] -->|ネットワーク作成リクエスト| NS[Neutron Server]
     NS -->|1. リクエスト受付| DB[(設定をDBに保存)]
     NS -->|2. 指示送信| MQ[RabbitMQ]
-    
+
     style NS fill:#ffdfba
 ```
 
@@ -276,7 +354,7 @@ graph LR
     L3 -->|1. ルーター作成| NS[Linuxネットワーク名前空間]
     L3 -->|2. IPテーブル設定| IPT[iptables<br/>NAT/ルーティング]
     L3 -->|3. インターフェース設定| IF[仮想インターフェース]
-    
+
     style L3 fill:#baffc9
 ```
 
@@ -296,7 +374,7 @@ sequenceDiagram
     participant MQ as RabbitMQ
     participant L3 as L3 Agent<br/>（ネットワーク）
     participant Linux as Linux<br/>ネットワーク名前空間
-    
+
     User->>NS: 1. 「ルーターを作成して」
     NS->>NS: 2. 設定をDBに保存
     NS->>MQ: 3. 「L3 Agentさん、ルーター作って」
@@ -319,7 +397,7 @@ graph LR
     VM[VM起動] -->|DHCPリクエスト| DHCP[DHCP Agent]
     DHCP -->|dnsmasq| IP[IPアドレス割り当て]
     IP --> VM
-    
+
     style DHCP fill:#baffc9
 ```
 
@@ -359,15 +437,15 @@ graph TB
         API[glance-api<br/>APIサーバー]
         Registry[glance-registry<br/>メタデータ管理]
     end
-    
+
     API --> Registry
     Registry --> DB[(Database<br/>メタデータ)]
     API --> Storage{ストレージバックエンド}
-    
+
     Storage --> FS[ファイルシステム]
     Storage --> Swift[Swift]
     Storage --> Ceph[Ceph RBD]
-    
+
     style API fill:#ffffba
 ```
 
@@ -389,7 +467,7 @@ sequenceDiagram
     participant Glance as Glance API
     participant Storage as ストレージバックエンド
     participant Compute as コンピュートノード
-    
+
     Nova->>Glance: 1. イメージID指定でリクエスト
     Glance->>Storage: 2. イメージファイル取得
     Storage->>Glance: 3. イメージファイル
@@ -419,13 +497,13 @@ graph LR
     subgraph "AWS"
         EBS[Amazon EBS<br/>Elastic Block Store]
     end
-    
+
     subgraph "OpenStack"
         Cinder[Cinder<br/>Block Storage]
     end
-    
+
     EBS -.対応する機能.- Cinder
-    
+
     style EBS fill:#ff9800
     style Cinder fill:#ffdfba
 ```
@@ -445,21 +523,21 @@ graph TB
         API[cinder-api<br/>APIサーバー]
         Scheduler[cinder-scheduler<br/>配置決定]
     end
-    
+
     subgraph "ストレージノード"
         Volume[cinder-volume<br/>ボリューム管理]
         Backend{バックエンド}
-        
+
         Backend --> LVM[LVM<br/>論理ボリューム]
         Backend --> Ceph[Ceph RBD]
         Backend --> NFS[NFS]
         Backend --> iSCSI[iSCSI]
     end
-    
+
     API --> Scheduler
     Scheduler --> Volume
     Volume --> Backend
-    
+
     style API fill:#ffdfba
     style Volume fill:#ffdfba
 ```
@@ -507,13 +585,13 @@ graph LR
     subgraph "AWS"
         S3[Amazon S3<br/>Simple Storage Service]
     end
-    
+
     subgraph "OpenStack"
         Swift[Swift<br/>Object Storage]
     end
-    
+
     S3 -.対応する機能.- Swift
-    
+
     style S3 fill:#ff9800
     style Swift fill:#bae1ff
 ```
@@ -542,12 +620,12 @@ graph TB
         VM1[VM] --> Volume[Cinder Volume]
         Volume --> Disk[ディスクとして<br/>マウント]
     end
-    
+
     subgraph "Swift（オブジェクトストレージ）"
         App[アプリケーション] --> API[REST API]
         API --> Object[オブジェクト<br/>（ファイル）]
     end
-    
+
     style Volume fill:#ffdfba
     style Object fill:#bae1ff
 ```
@@ -573,15 +651,15 @@ graph TB
 ```mermaid
 graph TB
     User[ユーザー] --> Choice{管理方法の選択}
-    
+
     Choice -->|GUI好き| Horizon[Horizon<br/>Webダッシュボード]
     Choice -->|CLI好き| CLI[OpenStack CLI]
     Choice -->|自動化| API[REST API]
-    
+
     Horizon --> Backend[OpenStack<br/>バックエンドサービス]
     CLI --> Backend
     API --> Backend
-    
+
     style Horizon fill:#c5e1a5
 ```
 
@@ -633,18 +711,18 @@ graph TB
         Compute2[コンピュートノード2<br/>VM実行]
         Storage[ストレージノード<br/>データ保存]
     end
-    
+
     Controller -->|管理| Network
     Controller -->|管理| Compute1
     Controller -->|管理| Compute2
     Controller -->|管理| Storage
-    
+
     Network -->|ネットワーク提供| Compute1
     Network -->|ネットワーク提供| Compute2
-    
+
     Storage -->|ボリューム提供| Compute1
     Storage -->|ボリューム提供| Compute2
-    
+
     style Controller fill:#ffb3ba
     style Network fill:#baffc9
     style Compute1 fill:#bae1ff
@@ -663,7 +741,7 @@ graph TB
 ```mermaid
 graph TB
     User[ユーザー/管理者] --> Controller[コントローラノード]
-    
+
     subgraph Controller ["コントローラノード（司令塔）"]
         API[各種APIサーバー]
         DB[(データベース)]
@@ -671,11 +749,11 @@ graph TB
         Scheduler[スケジューラ]
         Dashboard[ダッシュボード]
     end
-    
+
     Controller -->|指示| Network[ネットワークノード]
     Controller -->|指示| Compute[コンピュートノード]
     Controller -->|指示| Storage[ストレージノード]
-    
+
     style Controller fill:#ffb3ba
 ```
 
@@ -720,19 +798,19 @@ graph TB
 ```mermaid
 graph TB
     Controller[コントローラノード] -->|VM作成指示| Compute[コンピュートノード]
-    
+
     subgraph Compute ["コンピュートノード（作業員）"]
         NovaCompute[nova-compute]
         Hypervisor[ハイパーバイザー<br/>KVM/QEMU]
         OVSAgent[OVS Agent<br/>ネットワーク接続]
     end
-    
+
     Hypervisor --> VM1[VM 1]
     Hypervisor --> VM2[VM 2]
     Hypervisor --> VM3[VM 3]
-    
+
     OVSAgent --> Network[ネットワークノード]
-    
+
     style Compute fill:#bae1ff
 ```
 
@@ -783,7 +861,7 @@ graph LR
     Controller --> Compute2[コンピュート2]
     Controller --> Compute3[コンピュート3]
     Controller -.追加可能.-> ComputeN[コンピュートN]
-    
+
     style ComputeN stroke-dasharray: 5 5
 ```
 
@@ -802,19 +880,19 @@ graph LR
 ```mermaid
 graph TB
     Controller[コントローラノード] -->|ネットワーク設定指示| Network[ネットワークノード]
-    
+
     subgraph Network ["ネットワークノード（配送センター）"]
         L3Agent[L3 Agent<br/>ルーティング]
         DHCPAgent[DHCP Agent<br/>IP割り当て]
         MetaAgent[Metadata Agent<br/>メタデータ提供]
-        
+
         L3Agent --> Router[仮想ルーター<br/>Linux名前空間]
         DHCPAgent --> DHCP[dnsmasq<br/>DHCPサーバー]
     end
-    
+
     Network --> External[外部ネットワーク<br/>インターネット]
     Network --> Compute[コンピュートノード<br/>VM]
-    
+
     style Network fill:#baffc9
 ```
 
@@ -834,7 +912,7 @@ sequenceDiagram
     participant NS as Neutron Server<br/>（コントローラ）
     participant MQ as RabbitMQ
     participant L3 as L3 Agent<br/>（ネットワーク）
-    
+
     User->>NS: 「Floating IP作成」
     NS->>NS: 設定をDBに保存
     NS->>MQ: L3 Agentに指示送信
@@ -842,7 +920,7 @@ sequenceDiagram
     L3->>L3: iptablesでNAT設定
     L3->>NS: 完了報告
     NS->>User: 「Floating IP作成完了」
-    
+
     Note over NS: 指示役（司令塔）
     Note over L3: 実作業員
 ```
@@ -877,14 +955,14 @@ graph TB
     subgraph Storage ["ストレージノード（倉庫）"]
         Cinder[Cinder Volume<br/>ブロックストレージ]
         Swift[Swift<br/>オブジェクトストレージ]
-        
+
         Cinder --> LVM[LVMボリューム]
         Swift --> Objects[オブジェクト<br/>ファイル]
     end
-    
+
     Compute[コンピュートノード] -->|ボリューム接続| Cinder
     App[アプリケーション] -->|REST API| Swift
-    
+
     style Storage fill:#ffdfba
 ```
 
@@ -935,21 +1013,21 @@ graph TB
 ```mermaid
 graph TB
     User[ユーザー] --> Controller
-    
+
     subgraph "各ノードの役割"
         Controller[コントローラノード<br/>📋 司令塔・本社<br/>指示を出す]
         Network[ネットワークノード<br/>📮 郵便局<br/>実際に配送する]
         Compute[コンピュートノード<br/>🏭 工場<br/>実際に製品を作る]
         Storage[ストレージノード<br/>🏢 倉庫<br/>データを保管する]
     end
-    
+
     Controller -->|指示| Network
     Controller -->|指示| Compute
     Controller -->|指示| Storage
-    
+
     Network -->|ネットワーク| Compute
     Storage -->|ボリューム| Compute
-    
+
     style Controller fill:#ffb3ba
     style Network fill:#baffc9
     style Compute fill:#bae1ff
@@ -980,14 +1058,14 @@ sequenceDiagram
     participant API as Nova API<br/>（コントローラ）
     participant MQ as RabbitMQ<br/>（メッセージキュー）
     participant Compute as nova-compute<br/>（コンピュート）
-    
+
     API->>MQ: 1. メッセージ送信<br/>「VM作成して」
     API->>API: 2. すぐにリターン<br/>（待たない）
     MQ->>Compute: 3. メッセージ配信
     Compute->>Compute: 4. VM作成処理<br/>（時間がかかる）
     Compute->>MQ: 5. 完了通知
     MQ->>API: 6. ステータス更新
-    
+
     Note over API,Compute: 非同期処理により<br/>APIがブロックされない
 ```
 
@@ -1015,19 +1093,19 @@ graph TB
         Cinder[Cinder]
         Keystone[Keystone]
     end
-    
+
     Nova --> DB[(MariaDB/MySQL)]
     Neutron --> DB
     Glance --> DB
     Cinder --> DB
     Keystone --> DB
-    
+
     DB --> Storage1[nova データベース]
     DB --> Storage2[neutron データベース]
     DB --> Storage3[glance データベース]
     DB --> Storage4[cinder データベース]
     DB --> Storage5[keystone データベース]
-    
+
     style DB fill:#4db6ac
 ```
 
@@ -1059,7 +1137,7 @@ sequenceDiagram
     participant Neutron as Neutron
     participant MQ as RabbitMQ
     participant Compute as nova-compute
-    
+
     User->>Horizon: 1. VMインスタンス作成リクエスト
     Horizon->>Keystone: 2. トークン認証
     Keystone->>Horizon: 3. トークン発行
@@ -1085,11 +1163,11 @@ graph TB
         DB[(MariaDB/MySQL)]
         MQ[RabbitMQ]
     end
-    
+
     subgraph "コアサービス"
         Keystone[Keystone<br/>認証]
     end
-    
+
     subgraph "他のサービス"
         Nova[Nova]
         Neutron[Neutron]
@@ -1097,25 +1175,25 @@ graph TB
         Cinder[Cinder]
         Horizon[Horizon]
     end
-    
+
     DB --> Keystone
     MQ --> Keystone
-    
+
     Keystone --> Nova
     Keystone --> Neutron
     Keystone --> Glance
     Keystone --> Cinder
     Keystone --> Horizon
-    
+
     DB --> Nova
     DB --> Neutron
     DB --> Glance
     DB --> Cinder
-    
+
     MQ --> Nova
     MQ --> Neutron
     MQ --> Cinder
-    
+
     style Keystone fill:#ffb3ba
     style DB fill:#4db6ac
     style MQ fill:#ffd54f
@@ -1165,5 +1243,5 @@ Part 3では、OpenStackのネットワーク設計について詳しく学び�
 
 ---
 
-**前へ**: [Part 1: OpenStack概要と選択肢](01_overview.md)  
+**前へ**: [Part 1: OpenStack概要と選択肢](01_overview.md)
 **次へ**: [Part 3: ネットワーク設計ガイド](03_network_design.md)
