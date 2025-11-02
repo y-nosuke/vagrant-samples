@@ -2,17 +2,22 @@
 # vi: set ft=ruby :
 
 # OpenStack 3-Node Configuration
-# - Controller: 192.168.100.10
-# - Network: 192.168.100.20
-# - Compute: 192.168.100.31
+# - Controller: 172.16.100.10 (管理), 172.16.200.10 (オーバーレイ), 192.168.0.181 (外部)
+# - Network: 172.16.100.20 (管理), 172.16.200.20 (オーバーレイ), 192.168.0.182 (外部)
+# - Compute: 172.16.100.31 (管理), 172.16.200.31 (オーバーレイ)
 
 Vagrant.configure("2") do |config|
   # Ubuntu 24.04 LTS (Noble Numbat)
-  config.vm.box = "ubuntu/noble64"
+  # リリースノート参照: https://discourse.ubuntu.com/t/ubuntu-24-04-lts-noble-numbat-release-notes/39890
+  # Vagrantセクション: http://cloud-images.ubuntu.com/vagrant/
+  # bento/ubuntu-24.04 ボックスを使用（Ubuntu 24.04 LTS対応、VirtualBoxプロバイダー対応確認済み）
+  config.vm.box = "bento/ubuntu-24.04"
 
   # 共通設定
   config.vm.provider "virtualbox" do |vb|
-    vb.linked_clone = true
+    # リンククローンを無効化（一時VMが残る問題を回避）
+    # フルクローンを使用することで、不要な一時VMが作成されなくなります
+    vb.linked_clone = false
     # 入れ子仮想化を有効化（コンピュートノード用）
     vb.customize ["modifyvm", :id, "--nested-hw-virt", "on"]
   end
@@ -20,20 +25,56 @@ Vagrant.configure("2") do |config|
   # SSH設定
   config.ssh.insert_key = false
 
+  # ブリッジインターフェースの検出（デフォルトは自動検出）
+  # 環境変数 BRIDGE_INTERFACE で手動指定も可能
+  def detect_bridge_interface
+    if ENV['BRIDGE_INTERFACE']
+      return ENV['BRIDGE_INTERFACE']
+    end
+
+    # Windows: 一般的なインターフェース名を試す
+    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
+      # Windowsでは環境変数で指定するか、VirtualBox GUIで確認が必要
+      return nil
+    end
+
+    # macOS/Linux: アクティブなインターフェースを検出
+    interfaces = []
+    if RUBY_PLATFORM =~ /darwin/
+      # macOS
+      result = `route get default 2>/dev/null | grep interface | awk '{print $2}'`.strip
+      interfaces = ["#{result}", "en0", "en1", "eth0"] if result && !result.empty?
+    else
+      # Linux
+      result = `ip route | grep default | awk '{print $5}' | head -1`.strip
+      interfaces = ["#{result}", "eth0", "ens33", "enp0s3"] if result && !result.empty?
+    end
+
+    interfaces.find { |iface| !iface.empty? } || nil
+  end
+
+  bridge_interface = detect_bridge_interface
+
   #=============================================================================
   # Controller Node
   #=============================================================================
   config.vm.define "controller" do |controller|
     controller.vm.hostname = "controller"
 
-    # ネットワーク設定
-    # eth0: NAT (Vagrant default)
-    # eth1: 管理ネットワーク (Management)
-    controller.vm.network "private_network", ip: "192.168.100.10", virtualbox__intnet: "mgmt-net"
-    # eth2: オーバーレイ+ストレージネットワーク
-    controller.vm.network "private_network", ip: "192.168.200.10", virtualbox__intnet: "overlay-net"
-    # eth3: 外部ネットワーク (External)
-    controller.vm.network "private_network", ip: "192.168.1.200", virtualbox__intnet: "external-net"
+    # ネットワーク設定（本番環境と同じNIC構成）
+    # eth0: 管理ネットワーク (Management)
+    controller.vm.network "private_network", ip: "172.16.100.10"
+    # eth1: オーバーレイ+ストレージネットワーク
+    controller.vm.network "private_network", ip: "172.16.200.10", virtualbox__intnet: "overlay-net"
+    # eth2: 外部ネットワーク (External) - ブリッジモード
+    if bridge_interface
+      controller.vm.network "public_network", bridge: bridge_interface, ip: "192.168.0.181"
+    else
+      # ブリッジインターフェースが検出できない場合は警告
+      puts "警告: ブリッジインターフェースを自動検出できませんでした。"
+      puts "環境変数 BRIDGE_INTERFACE を設定するか、手動でブリッジを設定してください。"
+      controller.vm.network "public_network", ip: "192.168.0.181"
+    end
 
     # リソース設定
     controller.vm.provider "virtualbox" do |vb|
@@ -56,14 +97,17 @@ Vagrant.configure("2") do |config|
   config.vm.define "network" do |network|
     network.vm.hostname = "network"
 
-    # ネットワーク設定
-    # eth0: NAT (Vagrant default)
-    # eth1: 管理ネットワーク (Management)
-    network.vm.network "private_network", ip: "192.168.100.20", virtualbox__intnet: "mgmt-net"
-    # eth2: オーバーレイネットワーク
-    network.vm.network "private_network", ip: "192.168.200.20", virtualbox__intnet: "overlay-net"
-    # eth3: 外部ネットワーク (External)
-    network.vm.network "private_network", ip: "192.168.1.210", virtualbox__intnet: "external-net"
+    # ネットワーク設定（本番環境と同じNIC構成）
+    # eth0: 管理ネットワーク (Management)
+    network.vm.network "private_network", ip: "172.16.100.20"
+    # eth1: オーバーレイネットワーク
+    network.vm.network "private_network", ip: "172.16.200.20", virtualbox__intnet: "overlay-net"
+    # eth2: 外部ネットワーク (External) - ブリッジモード
+    if bridge_interface
+      network.vm.network "public_network", bridge: bridge_interface, ip: "192.168.0.182"
+    else
+      network.vm.network "public_network", ip: "192.168.0.182"
+    end
 
     # リソース設定
     network.vm.provider "virtualbox" do |vb|
@@ -86,12 +130,12 @@ Vagrant.configure("2") do |config|
   config.vm.define "compute1" do |compute|
     compute.vm.hostname = "compute1"
 
-    # ネットワーク設定
-    # eth0: NAT (Vagrant default)
-    # eth1: 管理ネットワーク (Management)
-    compute.vm.network "private_network", ip: "192.168.100.31", virtualbox__intnet: "mgmt-net"
-    # eth2: オーバーレイ+ストレージネットワーク
-    compute.vm.network "private_network", ip: "192.168.200.31", virtualbox__intnet: "overlay-net"
+    # ネットワーク設定（本番環境と同じNIC構成）
+    # eth0: 管理ネットワーク (Management)
+    compute.vm.network "private_network", ip: "172.16.100.31"
+    # eth1: オーバーレイ+ストレージネットワーク
+    compute.vm.network "private_network", ip: "172.16.200.31", virtualbox__intnet: "overlay-net"
+    # eth2: 外部ネットワークなし（Computeノードは外部ネットワークに接続しない）
 
     # リソース設定
     compute.vm.provider "virtualbox" do |vb|
@@ -119,8 +163,8 @@ Vagrant.configure("2") do |config|
   #   compute.vm.hostname = "compute2"
   #
   #   # ネットワーク設定
-  #   compute.vm.network "private_network", ip: "192.168.100.32", virtualbox__intnet: "mgmt-net"
-  #   compute.vm.network "private_network", ip: "192.168.200.32", virtualbox__intnet: "overlay-net"
+  #   compute.vm.network "private_network", ip: "172.16.100.32"
+  #   compute.vm.network "private_network", ip: "172.16.200.32", virtualbox__intnet: "overlay-net"
   #
   #   # リソース設定
   #   compute.vm.provider "virtualbox" do |vb|

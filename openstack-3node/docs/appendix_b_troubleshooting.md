@@ -19,6 +19,21 @@
     - [4. **接続性の確認** 🌐](#4-接続性の確認-)
     - [5. **設定ファイルの確認** 📄](#5-設定ファイルの確認-)
     - [6. **リソースの確認** 💻](#6-リソースの確認-)
+  - [環境準備関連の問題](#環境準備関連の問題)
+    - [問題1: PowerShellのバージョンが古い](#問題1-powershellのバージョンが古い)
+      - [方法1: WinGetを使用（推奨・最も簡単）](#方法1-wingetを使用推奨最も簡単)
+      - [方法2: Microsoft Storeからインストール](#方法2-microsoft-storeからインストール)
+      - [方法3: MSIパッケージからインストール](#方法3-msiパッケージからインストール)
+    - [問題2: PowerShellスクリプトの実行が無効になっている（Windows）](#問題2-powershellスクリプトの実行が無効になっているwindows)
+      - [方法1: 現在のセッションでのみ実行を許可（推奨・一時的）](#方法1-現在のセッションでのみ実行を許可推奨一時的)
+      - [方法2: 現在のユーザーのみ実行を許可（永続的・推奨）](#方法2-現在のユーザーのみ実行を許可永続的推奨)
+      - [方法3: スクリプトを直接実行（一時的）](#方法3-スクリプトを直接実行一時的)
+    - [問題3: 仮想化支援機能が有効にならない](#問題3-仮想化支援機能が有効にならない)
+      - [Windowsの場合（PowerShell 7.x管理者権限で実行）](#windowsの場合powershell-7x管理者権限で実行)
+      - [BIOS/UEFI設定](#biosuefi設定)
+    - [問題4: メモリ不足でVM起動失敗](#問題4-メモリ不足でvm起動失敗)
+      - [ノードを順次起動（推奨）](#ノードを順次起動推奨)
+    - [問題5: ネットワーク接続失敗](#問題5-ネットワーク接続失敗)
   - [構築フェーズの問題](#構築フェーズの問題)
     - [問題1: コンポーネント間の通信エラー](#問題1-コンポーネント間の通信エラー)
     - [問題2: データベース接続エラー](#問題2-データベース接続エラー)
@@ -113,6 +128,423 @@ sudo cat /etc/nova/nova.conf | grep -v "^#" | grep -v "^$"
 top
 df -h
 free -h
+```
+
+---
+
+## 環境準備関連の問題
+
+### 問題1: PowerShellのバージョンが古い
+
+**症状**:
+
+- PowerShell 5.1がインストールされているが、最新機能が使えない
+- スクリプトの構文エラーが発生する（PowerShell 7.xで解決される可能性）
+- `$PSVersionTable.PSVersion`で確認すると5.x系が表示される
+
+**現在のバージョン確認**:
+
+```powershell
+$PSVersionTable.PSVersion
+```
+
+**解決方法**:
+
+PowerShell 7.x（PowerShell Core）は、PowerShell 5.1（Windows PowerShell）とは別にインストールされます。両方を共存させることができます。
+
+#### 方法1: WinGetを使用（推奨・最も簡単）
+
+```powershell
+# 1. WinGetがインストールされているか確認
+winget --version
+
+# WinGetがインストールされていない場合は、Microsoft Storeから「App Installer」をインストール
+
+# 2. PowerShell 7をインストールまたは更新
+winget install --id Microsoft.PowerShell --source winget
+
+# 3. インストール確認
+pwsh --version
+```
+
+#### 方法2: Microsoft Storeからインストール
+
+1. Microsoft Storeを開く
+2. 「PowerShell」で検索
+3. 「取得」または「インストール」をクリック
+
+#### 方法3: MSIパッケージからインストール
+
+1. [PowerShell公式GitHubリリースページ](https://github.com/PowerShell/PowerShell/releases)にアクセス
+2. 最新バージョンの`PowerShell-7.x.x-win-x64.msi`をダウンロード
+3. MSIファイルを実行してインストール
+
+**インストール後の使用方法**:
+
+PowerShell 7.xは、PowerShell 5.1とは別の実行ファイルとしてインストールされます。**重要なポイント**: `powershell.exe`は依然としてPowerShell 5.1を起動します。PowerShell 7.xを起動するには、`pwsh.exe`を使用する必要があります。
+
+```powershell
+# PowerShell 5.1（従来のWindows PowerShell）
+powershell.exe
+$PSVersionTable.PSVersion  # 5.x系（Major: 5）
+
+# PowerShell 7.x（新しいPowerShell）
+pwsh.exe
+$PSVersionTable.PSVersion  # 7.x系（Major: 7）
+```
+
+**インストール確認**:
+
+PowerShell 7が正しくインストールされているか確認：
+
+```powershell
+# PowerShell 7のバージョン確認（PowerShell 5.1から実行）
+pwsh --version
+
+# または、PowerShell 7を起動して確認
+pwsh
+$PSVersionTable.PSVersion
+```
+
+**「まだ5.1が表示される」場合の確認事項**:
+
+1. **PowerShell 7がインストールされているか確認**:
+
+   ```powershell
+   # PowerShell 7の実行ファイルの存在確認
+   Test-Path "C:\Program Files\PowerShell\7\pwsh.exe"
+
+   # インストールされている場合、パスが表示される
+   Get-Command pwsh | Select-Object -ExpandProperty Source
+   ```
+
+2. **`pwsh`コマンドを使用する**:
+   - ❌ `powershell` または `powershell.exe` → PowerShell 5.1が起動
+   - ✅ `pwsh` または `pwsh.exe` → PowerShell 7が起動
+
+3. **スタートメニューから起動**:
+   - 「PowerShell 7」または「PowerShell」と検索
+   - アイコンが青いアイコン（PowerShell 7）を選択
+
+**デフォルトのPowerShellを変更**:
+
+```powershell
+# PowerShell 7をデフォルトのPowerShellとして設定
+# （オプション: 管理者権限で実行）
+New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Program Files\PowerShell\7\pwsh.exe" -PropertyType String -Force
+```
+
+**注意事項**:
+
+- PowerShell 5.1とPowerShell 7.xは共存できます
+- PowerShell 7.xは`.NET`ベースで、クロスプラットフォーム対応
+- 一部のモジュールはPowerShell 7.xで動作しない場合があります（例: 一部のWindows専用モジュール）
+- スクリプトを実行する際は、PowerShell 7.xを使用することを推奨：
+
+```powershell
+# 重要: pwshを使用すること
+pwsh -File .\scripts\setup_vbox_network.ps1
+
+# powershell.exeではPowerShell 5.1が起動するため、構文エラーが発生する可能性がある
+```
+
+**Windows Terminalを使用する場合**:
+
+Windows Terminalを使用している場合、デフォルトのプロファイルをPowerShell 7に変更できます：
+
+1. Windows Terminalを開く
+2. 設定（歯車アイコン）を開く
+3. 「デフォルトのプロファイル」を「PowerShell」または「PowerShell 7」に変更
+
+---
+
+### 問題2: PowerShellスクリプトの実行が無効になっている（Windows）
+
+**症状**:
+
+```text
+.\scripts\setup_vbox_network.ps1 : このシステムではスクリプトの実行が無効になっているため、
+ファイル D:\...\setup_vbox_network.ps1 を読み込むことができません。
+PSSecurityException: UnauthorizedAccess
+```
+
+**原因**:
+
+- PowerShellの実行ポリシーが `Restricted` または `AllSigned` に設定されている
+- 未署名のスクリプトの実行がブロックされている
+
+**解決方法**:
+
+#### 方法1: 現在のセッションでのみ実行を許可（推奨・一時的）
+
+```powershell
+# PowerShell管理者権限で実行
+Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process
+
+# スクリプトを実行
+.\scripts\setup_vbox_network.ps1
+```
+
+#### 方法2: 現在のユーザーのみ実行を許可（永続的・推奨）
+
+```powershell
+# PowerShell管理者権限で実行
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 実行ポリシーの確認
+Get-ExecutionPolicy -List
+
+# スクリプトを実行
+.\scripts\setup_vbox_network.ps1
+```
+
+#### 方法3: スクリプトを直接実行（一時的）
+
+```powershell
+# PowerShell 7で直接実行（-ExecutionPolicy Bypassを指定）
+pwsh -ExecutionPolicy Bypass -File .\scripts\setup_vbox_network.ps1
+
+# 注意: powershell.exeを使用するとPowerShell 5.1が起動します
+```
+
+**実行ポリシーの確認**:
+
+```powershell
+# 現在の実行ポリシーを確認
+Get-ExecutionPolicy
+
+# すべてのスコープの実行ポリシーを確認
+Get-ExecutionPolicy -List
+```
+
+**実行ポリシーの説明**:
+
+| ポリシー       | 説明                                                         | 推奨度                       |
+| -------------- | ------------------------------------------------------------ | ---------------------------- |
+| `Restricted`   | すべてのスクリプトの実行を禁止                               | デフォルト                   |
+| `AllSigned`    | 署名されたスクリプトのみ実行可能                             | 中                           |
+| `RemoteSigned` | ローカルスクリプトは実行可能、リモートスクリプトは署名が必要 | **推奨**                     |
+| `Unrestricted` | すべてのスクリプトを実行可能（警告あり）                     | 低（セキュリティリスクあり） |
+| `Bypass`       | すべてのスクリプトを警告なしで実行                           | 開発環境のみ                 |
+
+**セキュリティ上の注意**:
+
+- `Unrestricted` や `Bypass` は本番環境では使用しないでください
+- プロジェクトのローカルスクリプトのみ実行する場合は `RemoteSigned` で十分です
+
+**実行ポリシーの階層とスコープ**:
+
+PowerShellの実行ポリシーには優先順位があります（上位から下位へ）:
+
+1. `MachinePolicy` (グループポリシー)
+2. `UserPolicy` (グループポリシー)
+3. `Process` (現在のセッション)
+4. `CurrentUser` (現在のユーザー)
+5. `LocalMachine` (すべてのユーザー)
+
+より上位のスコープで設定されたポリシーが、下位のスコープの設定を上書きします。
+
+**実行ポリシーを元に戻す際の注意**:
+
+```powershell
+# 現在の実行ポリシーを確認
+Get-ExecutionPolicy -List
+```
+
+もし `Process` スコープで `Bypass` が設定されている場合、`CurrentUser` スコープでの変更は無効になります：
+
+```powershell
+# エラー例: ProcessスコープでBypassが設定されている場合
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser
+# エラー: より上位のスコープ（Process）で定義されたポリシーによって上書きされています
+
+# 解決方法1: Processスコープを確認・変更（現在のセッションのみ）
+Get-ExecutionPolicy -Scope Process
+# Processスコープはセッション終了時に自動的にリセットされるため、明示的に変更する必要はありません
+
+# 解決方法2: CurrentUserスコープのみ変更（推奨）
+# 現在のセッションを閉じて新しいセッションを開いた後：
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser
+
+# 解決方法3: すべてのスコープを確認して適切なスコープを変更
+Get-ExecutionPolicy -List
+# 実際に有効になっているスコープを確認してから変更してください
+```
+
+**推奨される方法**:
+
+現在のセッションで一時的に `Bypass` を設定した場合、セッションを閉じれば自動的にリセットされます。永続的な設定を変更する場合は、新しいPowerShellセッションを開いてから変更してください：
+
+```powershell
+# 新しいPowerShellセッションで実行
+Set-ExecutionPolicy -ExecutionPolicy Restricted -Scope CurrentUser
+```
+
+### 問題3: 仮想化支援機能が有効にならない
+
+**症状**:
+
+- VirtualBoxでVMが起動しない
+- `VT-x is not available` エラー
+- 仮想化機能が使用できない
+
+**原因**:
+
+- BIOS/UEFIで仮想化機能が無効になっている
+- Windows: Hyper-Vが有効になっており、VirtualBoxと競合している
+
+**解決方法**:
+
+#### Windowsの場合（PowerShell 7.x管理者権限で実行）
+
+**WMIを使用した確認方法（推奨）**
+
+```powershell
+# 仮想化機能の確認
+Get-CimInstance -ClassName Win32_ComputerSystem | Select-Object -ExpandProperty HypervisorPresent
+```
+
+より詳細な情報を取得する場合：
+
+```powershell
+$computerSystem = Get-CimInstance -ClassName Win32_ComputerSystem
+Write-Host "仮想化ファームウェア有効: $($computerSystem.HypervisorPresent)"
+```
+
+**systeminfoを使用した確認方法**
+
+```powershell
+# 仮想化機能の確認
+systeminfo | Select-String -Pattern "Virtualization"
+```
+
+**期待される出力**: `Virtualization Enabled In Firmware: Yes` または `True`
+
+**Hyper-Vが有効の場合は無効化**:
+
+```powershell
+# Hyper-Vが有効の場合は無効化
+bcdedit /set hypervisorlaunchtype off
+
+# 再起動が必要
+shutdown /r /t 0
+```
+
+**注意**: 日本語版Windowsでは、`Select-String`を使用すると確実です。
+
+#### BIOS/UEFI設定
+
+1. PCを再起動
+2. 起動時にBIOS/UEFI設定画面に入る（Del, F2, F10, F12など）
+3. 以下の設定を探して有効化：
+   - **Intel**: "Intel Virtualization Technology" または "Intel VT-x"
+   - **AMD**: "AMD-V" または "SVM Mode"
+4. 設定を保存して再起動
+
+### 問題4: メモリ不足でVM起動失敗
+
+**症状**:
+
+- `vagrant up`実行時にメモリ不足エラー
+- VMが起動しない
+- ホストマシンのメモリ使用率が高い
+
+**原因**:
+
+- ホストマシンのメモリが不足している
+- 3ノード同時起動で必要なメモリが確保できない
+
+**解決方法**:
+
+```bash
+# 1. ホストマシンの空きメモリを確認
+# Windows
+systeminfo | findstr /C:"Available Physical Memory"
+
+# Linux/macOS
+free -h
+# または
+vm_stat  # macOS
+
+# 2. Vagrantfileでメモリ設定を削減
+# openstack-3node/Vagrantfile を編集
+
+# Controller Node
+vb.memory = "4096"  # 8GB → 4GB
+
+# Network Node
+vb.memory = "2048"  # 4GB → 2GB
+
+# Compute Node
+vb.memory = "4096"  # 8GB → 4GB
+```
+
+#### ノードを順次起動（推奨）
+
+```bash
+# 1台ずつ起動
+vagrant up controller
+# 起動完了を待つ
+
+vagrant up network
+# 起動完了を待つ
+
+vagrant up compute1
+```
+
+### 問題5: ネットワーク接続失敗
+
+**症状**:
+
+- VM起動後にネットワーク接続ができない
+- SSH接続ができない
+- ノード間のpingが通らない
+
+**原因**:
+
+- VirtualBoxネットワーク設定の問題
+- ファイアウォールでポートがブロックされている
+- Host-Only Networkが正しく設定されていない
+
+**解決方法**:
+
+```bash
+# 1. VirtualBoxネットワーク設定の確認
+VBoxManage list hostonlyifs
+
+# 2. Host-Only Networkが存在するか確認
+# 192.168.100.1のアダプタが存在することを確認
+
+# 3. ネットワークスクリプトを再実行（Windows）
+.\scripts\setup_vbox_network.ps1
+
+# または（macOS/Linux）
+bash scripts/setup_vbox_network.sh
+
+# 4. ファイアウォールを一時無効化してテスト
+# Windows
+netsh advfirewall set allprofiles state off
+
+# Linux (Ubuntu)
+sudo ufw disable
+
+# macOS（通常はファイアウォールによる問題は少ない）
+
+# 5. VM内からネットワーク設定を確認
+vagrant ssh controller
+ip addr show
+ping -c 3 192.168.100.20
+ping -c 3 192.168.100.31
+```
+
+**ファイアウォールの再有効化**:
+
+```bash
+# Windows
+netsh advfirewall set allprofiles state on
+
+# Linux (Ubuntu)
+sudo ufw enable
 ```
 
 ---
