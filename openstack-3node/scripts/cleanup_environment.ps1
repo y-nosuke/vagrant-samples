@@ -187,5 +187,5 @@ Write-Host "  ✓ Vagrantメタデータ (.vagrant)" -ForegroundColor Green
 Write-Host ""
 Write-Host "注意:" -ForegroundColor Yellow
 Write-Host "  - VirtualBox GUIからVMが完全に削除されたことを確認してください" -ForegroundColor White
-Write-Host "  - 再度環境を構築する場合は、setup_vbox_network.ps1を実行してください" -ForegroundColor White
+Write-Host "  - 再度環境を構築する場合は、setup_environment.ps1を実行してください" -ForegroundColor White
 Write-Host ""

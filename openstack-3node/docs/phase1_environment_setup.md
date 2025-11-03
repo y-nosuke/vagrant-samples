@@ -48,11 +48,10 @@
     - [ノード間の疎通確認](#ノード間の疎通確認)
   - [✅ Phase 1 完了チェックリスト](#-phase-1-完了チェックリスト)
   - [🔧 よく使うVagrantコマンド](#-よく使うvagrantコマンド)
-  - [🗑️ 環境の削除（クリーンアップ）](#️-環境の削除クリーンアップ)
-    - [クリーンアップスクリプトの使用](#クリーンアップスクリプトの使用)
-    - [クリーンアップの内容](#クリーンアップの内容)
-    - [注意事項](#注意事項)
-    - [手動での削除](#手動での削除)
+  - [🛠️ 補助ツール](#️-補助ツール)
+    - [✅ 前提条件確認スクリプト（check\_environment.ps1 / check\_environment.sh）](#-前提条件確認スクリプトcheck_environmentps1--check_environmentsh)
+    - [🚀 環境構築スクリプト（setup\_environment.ps1 / setup\_environment.sh）](#-環境構築スクリプトsetup_environmentps1--setup_environmentsh)
+    - [🗑️ 環境削除スクリプト（cleanup\_environment.ps1 / cleanup\_environment.sh）](#️-環境削除スクリプトcleanup_environmentps1--cleanup_environmentsh)
   - [⚠️ トラブルシューティング](#️-トラブルシューティング)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
@@ -325,7 +324,6 @@ Name                                     Description                           N
 ----                                     -----------                           ----------
 Intel(R) Wi-Fi 6E AX211 160MHz           Intel(R) Wi-Fi 6E AX211 160MHz              True
 VirtualBox Host-Only Ethernet Adapter    VirtualBox Host-Only Ethernet Adapter       True
-VirtualBox Host-Only Ethernet Adapter #2 VirtualBox Host-Only Ethernet Adapter       True
 ```
 
 **一般的なインターフェース名:**
@@ -403,7 +401,7 @@ VBoxManage list hostonlyifs | grep -A 10 "172.16.100"
 正常に設定されている場合の出力例：
 
 ```bash
-Name:            VirtualBox Host-Only Ethernet Adapter #2
+Name:            VirtualBox Host-Only Ethernet Adapter
 GUID:            xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 DHCP:            Disabled
 IPAddress:       172.16.100.1
@@ -414,7 +412,7 @@ HardwareAddress: 0a:00:27:00:00:00
 MediumType:      Ethernet
 Wireless:        No
 Status:          Up
-VBoxNetworkName: HostInterfaceNetworking-VirtualBox Host-Only Ethernet Adapter #2
+VBoxNetworkName: HostInterfaceNetworking-VirtualBox Host-Only Ethernet Adapter
 ```
 
 ---
@@ -537,8 +535,15 @@ This environment represents multiple VMs...
 
 ```bash
 # SSH接続
+# Controllerノード
 vagrant ssh controller
+# Networkノード
+vagrant ssh network
+# Compute1ノード
+vagrant ssh compute1
+```
 
+```bash
 # ホスト名確認
 hostname
 
@@ -748,67 +753,63 @@ vagrant reload compute1
 
 ---
 
-## 🗑️ 環境の削除（クリーンアップ）
+## 🛠️ 補助ツール
 
-学習環境を完全に削除したい場合は、クリーンアップスクリプトを使用してください。
+環境構築や確認を効率化するための補助スクリプトを用意しています。これらのスクリプトは、手動での作業を簡略化するためのオプション機能です。
 
-### クリーンアップスクリプトの使用
+> **注**: これらのスクリプトは補助ツールです。手動で各ステップを実行することも可能です。スクリプトを使用しない場合は、[Step 1-2: ネットワーク作成](#-step-1-2-ネットワーク作成)と[Step 1-3: VM起動と基本確認](#-step-1-3-vm起動と基本確認)の手順に従ってください。
 
-**Windows (PowerShell 7.x):**
+詳細な使用方法については、[scripts/README.md](../scripts/README.md)を参照してください。
+
+### ✅ 前提条件確認スクリプト（check_environment.ps1 / check_environment.sh）
+
+環境構築前に、前提条件が満たされているか確認するスクリプトです。
+
+詳細は [scripts/README.md#前提条件確認スクリプト](../scripts/README.md#前提条件確認スクリプト) を参照してください。
+
+**クイックスタート:**
 
 ```powershell
-# PowerShell 7.xで実行
+# Windows
+pwsh -ExecutionPolicy Bypass -File .\scripts\check_environment.ps1
+
+# macOS/Linux
+bash scripts/check_environment.sh
+```
+
+### 🚀 環境構築スクリプト（setup_environment.ps1 / setup_environment.sh）
+
+環境構築を自動化するスクリプトです。`cleanup_environment.ps1`/`cleanup_environment.sh`の逆の操作を行います。
+
+詳細は [scripts/README.md#環境構築スクリプト](../scripts/README.md#環境構築スクリプト) を参照してください。
+
+**クイックスタート:**
+
+```powershell
+# Windows（管理者権限が必要）
+pwsh -ExecutionPolicy Bypass -File .\scripts\setup_environment.ps1
+
+# macOS/Linux
+bash scripts/setup_environment.sh
+```
+
+### 🗑️ 環境削除スクリプト（cleanup_environment.ps1 / cleanup_environment.sh）
+
+学習環境を完全に削除するスクリプトです。`setup_environment.ps1`/`setup_environment.sh`で作成したリソースを削除します。
+
+詳細は [scripts/README.md#環境削除スクリプト](../scripts/README.md#環境削除スクリプト) を参照してください。
+
+**クイックスタート:**
+
+```powershell
+# Windows
 pwsh -ExecutionPolicy Bypass -File .\scripts\cleanup_environment.ps1
-```
 
-**macOS/Linux:**
-
-```bash
-# スクリプトを実行
+# macOS/Linux
 bash scripts/cleanup_environment.sh
-
-# または実行権限を付与してから実行
-chmod +x scripts/cleanup_environment.sh
-./scripts/cleanup_environment.sh
 ```
 
-### クリーンアップの内容
-
-スクリプトは以下のリソースを削除します：
-
-1. **Vagrant VM**
-   - `controller`、`network`、`compute1` の全てのVM
-   - Vagrantメタデータ (`.vagrant` ディレクトリ)
-   - オプション: 未使用のVagrantボックス
-
-2. **VirtualBox Host-Only Network**
-   - 管理ネットワーク用アダプタ (172.16.100.0/24)
-   - 関連するDHCPサーバー設定
-
-3. **その他のリソース**
-   - VirtualBox内部ネットワーク（VM削除時に自動削除）
-
-### 注意事項
-
-- **警告**: クリーンアップスクリプトは全てのVMとデータを削除します
-- 実行前に必要なデータのバックアップを取ってください
-- 削除後、再度環境を構築する場合は `setup_vbox_network.sh`（または `.ps1`）を実行してください
-
-### 手動での削除
-
-スクリプトを使用しない場合は、以下のコマンドで手動削除も可能です：
-
-```bash
-# VMを削除
-vagrant destroy -f
-
-# Vagrantメタデータを削除
-rm -rf .vagrant
-
-# VirtualBox Host-Only Networkを削除（手動）
-VBoxManage list hostonlyifs  # アダプタ名を確認
-VBoxManage hostonlyif remove <アダプタ名>
-```
+> **警告**: クリーンアップスクリプトは全てのVMとデータを削除します。実行前に必要なデータのバックアップを取ってください。
 
 ---
 

@@ -25,35 +25,9 @@ Vagrant.configure("2") do |config|
   # SSH設定
   config.ssh.insert_key = false
 
-  # ブリッジインターフェースの検出（デフォルトは自動検出）
-  # 環境変数 BRIDGE_INTERFACE で手動指定も可能
-  def detect_bridge_interface
-    if ENV['BRIDGE_INTERFACE']
-      return ENV['BRIDGE_INTERFACE']
-    end
-
-    # Windows: 一般的なインターフェース名を試す
-    if RUBY_PLATFORM =~ /mswin|mingw|cygwin/
-      # Windowsでは環境変数で指定するか、VirtualBox GUIで確認が必要
-      return nil
-    end
-
-    # macOS/Linux: アクティブなインターフェースを検出
-    interfaces = []
-    if RUBY_PLATFORM =~ /darwin/
-      # macOS
-      result = `route get default 2>/dev/null | grep interface | awk '{print $2}'`.strip
-      interfaces = ["#{result}", "en0", "en1", "eth0"] if result && !result.empty?
-    else
-      # Linux
-      result = `ip route | grep default | awk '{print $5}' | head -1`.strip
-      interfaces = ["#{result}", "eth0", "ens33", "enp0s3"] if result && !result.empty?
-    end
-
-    interfaces.find { |iface| !iface.empty? } || nil
-  end
-
-  bridge_interface = detect_bridge_interface
+  # ブートタイムアウトを増やす（Host-Only Network設定のため）
+  config.vm.boot_timeout = 600  # 10分
+  config.ssh.connect_timeout = 60  # 60秒
 
   #=============================================================================
   # Controller Node
@@ -62,19 +36,14 @@ Vagrant.configure("2") do |config|
     controller.vm.hostname = "controller"
 
     # ネットワーク設定（本番環境と同じNIC構成）
-    # eth0: 管理ネットワーク (Management)
-    controller.vm.network "private_network", ip: "172.16.100.10"
-    # eth1: オーバーレイ+ストレージネットワーク
+    # eth0: 管理ネットワーク (Management) - Host-Only Network
+    controller.vm.network "private_network", ip: "172.16.100.10", virtualbox__hostonlyadapter: "VirtualBox Host-Only Ethernet Adapter"
+    # eth1: オーバーレイ+ストレージネットワーク - Internal Network
     controller.vm.network "private_network", ip: "172.16.200.10", virtualbox__intnet: "overlay-net"
-    # eth2: 外部ネットワーク (External) - ブリッジモード
-    if bridge_interface
-      controller.vm.network "public_network", bridge: bridge_interface, ip: "192.168.0.181"
-    else
-      # ブリッジインターフェースが検出できない場合は警告
-      puts "警告: ブリッジインターフェースを自動検出できませんでした。"
-      puts "環境変数 BRIDGE_INTERFACE を設定するか、手動でブリッジを設定してください。"
-      controller.vm.network "public_network", ip: "192.168.0.181"
-    end
+    # eth2: 外部ネットワーク (External) - Bridged Network
+    # 環境変数 BRIDGE_INTERFACE で指定可能、未指定の場合は自動検出
+    bridge_if = ENV['BRIDGE_INTERFACE'] || nil
+    controller.vm.network "public_network", bridge: bridge_if, ip: "192.168.0.181"
 
     # リソース設定
     controller.vm.provider "virtualbox" do |vb|
@@ -85,6 +54,9 @@ Vagrant.configure("2") do |config|
       # ディスク容量の設定 (必要に応じて調整)
       # デフォルトは約40GB
     end
+
+    # 起動後は管理ネットワーク経由でSSH接続可能
+    # controller.ssh.host = "172.16.100.10"  # 起動完了後に有効化
 
     # プロビジョニング (Phase 2以降で使用)
     # controller.vm.provision "shell", path: "provision/common.sh"
@@ -98,16 +70,14 @@ Vagrant.configure("2") do |config|
     network.vm.hostname = "network"
 
     # ネットワーク設定（本番環境と同じNIC構成）
-    # eth0: 管理ネットワーク (Management)
-    network.vm.network "private_network", ip: "172.16.100.20"
-    # eth1: オーバーレイネットワーク
+    # eth0: 管理ネットワーク (Management) - Host-Only Network
+    network.vm.network "private_network", ip: "172.16.100.20", virtualbox__hostonlyadapter: "VirtualBox Host-Only Ethernet Adapter"
+    # eth1: オーバーレイネットワーク - Internal Network
     network.vm.network "private_network", ip: "172.16.200.20", virtualbox__intnet: "overlay-net"
-    # eth2: 外部ネットワーク (External) - ブリッジモード
-    if bridge_interface
-      network.vm.network "public_network", bridge: bridge_interface, ip: "192.168.0.182"
-    else
-      network.vm.network "public_network", ip: "192.168.0.182"
-    end
+    # eth2: 外部ネットワーク (External) - Bridged Network
+    # 環境変数 BRIDGE_INTERFACE で指定可能、未指定の場合は自動検出
+    bridge_if = ENV['BRIDGE_INTERFACE'] || nil
+    network.vm.network "public_network", bridge: bridge_if, ip: "192.168.0.182"
 
     # リソース設定
     network.vm.provider "virtualbox" do |vb|
@@ -118,6 +88,9 @@ Vagrant.configure("2") do |config|
       # ディスク容量の設定
       # デフォルトは約40GB
     end
+
+    # 起動後は管理ネットワーク経由でSSH接続可能
+    # network.ssh.host = "172.16.100.20"  # 起動完了後に有効化
 
     # プロビジョニング (Phase 2以降で使用)
     # network.vm.provision "shell", path: "provision/common.sh"
@@ -131,9 +104,9 @@ Vagrant.configure("2") do |config|
     compute.vm.hostname = "compute1"
 
     # ネットワーク設定（本番環境と同じNIC構成）
-    # eth0: 管理ネットワーク (Management)
-    compute.vm.network "private_network", ip: "172.16.100.31"
-    # eth1: オーバーレイ+ストレージネットワーク
+    # eth0: 管理ネットワーク (Management) - Host-Only Network
+    compute.vm.network "private_network", ip: "172.16.100.31", virtualbox__hostonlyadapter: "VirtualBox Host-Only Ethernet Adapter"
+    # eth1: オーバーレイ+ストレージネットワーク - Internal Network
     compute.vm.network "private_network", ip: "172.16.200.31", virtualbox__intnet: "overlay-net"
     # eth2: 外部ネットワークなし（Computeノードは外部ネットワークに接続しない）
 
@@ -150,6 +123,9 @@ Vagrant.configure("2") do |config|
       # デフォルトは約40GB
       # 追加ディスクが必要な場合はここで設定
     end
+
+    # 起動後は管理ネットワーク経由でSSH接続可能
+    # compute.ssh.host = "172.16.100.31"  # 起動完了後に有効化
 
     # プロビジョニング (Phase 2以降で使用)
     # compute.vm.provision "shell", path: "provision/common.sh"

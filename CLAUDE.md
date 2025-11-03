@@ -9,6 +9,7 @@ This repository contains OpenStack learning environments using Vagrant + Virtual
 ## Common Commands
 
 ### Vagrant VM Management
+
 ```bash
 # Navigate to the main project directory
 cd openstack-3node
@@ -40,6 +41,7 @@ vagrant destroy -f
 ```
 
 ### Environment Cleanup
+
 ```bash
 # Clean up entire environment (Linux/macOS)
 bash scripts/cleanup_environment.sh
@@ -57,6 +59,7 @@ PowerShell -ExecutionPolicy Bypass -File scripts/setup_vbox_network.ps1
 ## Architecture
 
 ### VM Configuration
+
 - **Controller Node**: 172.16.100.10 (management), 172.16.200.10 (overlay), 192.168.0.181 (external)
   - 8GB RAM, 4 CPUs
   - Runs Keystone (auth), Glance (images), Nova API, Neutron API
@@ -71,12 +74,15 @@ PowerShell -ExecutionPolicy Bypass -File scripts/setup_vbox_network.ps1
   - Nested virtualization enabled
 
 ### Network Design
+
 - **Management Network**: 172.16.100.0/24 (private_network)
 - **Overlay Network**: 172.16.200.0/24 (internal VirtualBox network)
 - **External Network**: 192.168.0.0/24 (public_network, bridged)
 
 ### Learning Phases
+
 The project follows a structured 5-phase approach:
+
 1. **Phase 1**: Environment setup and VM configuration
 2. **Phase 2**: Foundation services (MariaDB, RabbitMQ, Memcached)
 3. **Phase 3**: Core OpenStack services (Keystone, Glance, Nova, Neutron)
@@ -93,6 +99,7 @@ The project follows a structured 5-phase approach:
 ## Bridge Interface Configuration
 
 The Vagrantfile automatically detects bridge interfaces, but can be manually set:
+
 ```bash
 # Set bridge interface via environment variable
 export BRIDGE_INTERFACE="eth0"  # Linux
@@ -110,6 +117,7 @@ set BRIDGE_INTERFACE=Ethernet   # Windows
 ## Documentation Structure
 
 The docs directory contains:
+
 - **Phase guides**: step-by-step instructions for each learning phase
 - **Architecture docs**: detailed system and network design
 - **Appendices**: glossary, troubleshooting, references
