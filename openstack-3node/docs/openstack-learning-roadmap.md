@@ -31,17 +31,15 @@
     - [Vagrantfileの設計](#vagrantfileの設計)
   - [📁 プロジェクト構成](#-プロジェクト構成)
   - [⚡ コアパス（最短ルート）](#-コアパス最短ルート)
-    - [**Phase 1: 環境準備**](#phase-1-環境準備)
-    - [**Phase 2: 基盤構築**](#phase-2-基盤構築)
-    - [**Phase 3: コアサービス構築**](#phase-3-コアサービス構築)
-      - [**Step 3-1: Keystone（認証サービス）の構築** ⭐⭐⭐](#step-3-1-keystone認証サービスの構築-)
-      - [**Step 3-2: Glance（イメージサービス）の構築** ⭐⭐⭐](#step-3-2-glanceイメージサービスの構築-)
-      - [**Step 3-3: Nova（コンピュートサービス）の構築** ⭐⭐⭐](#step-3-3-novaコンピュートサービスの構築-)
-      - [**Step 3-4: Neutron（ネットワークサービス）の構築** ⭐⭐⭐](#step-3-4-neutronネットワークサービスの構築-)
-    - [**Phase 4: 初回VM起動**](#phase-4-初回vm起動)
-    - [**Phase 5: 基本演習**](#phase-5-基本演習)
-      - [**Step 5-1: 演習1 - Webサーバー構築** ⭐⭐⭐](#step-5-1-演習1---webサーバー構築-)
-      - [**Step 5-2: 演習4 - ボリューム管理** ⭐⭐⭐](#step-5-2-演習4---ボリューム管理-)
+    - [**Phase 1: 環境準備** ⭐⭐](#phase-1-環境準備-)
+    - [**Phase 2: 基盤構築** ⭐⭐⭐](#phase-2-基盤構築-)
+    - [**Phase 3: Keystone（認証サービス）** ⭐⭐⭐](#phase-3-keystone認証サービス-)
+    - [**Phase 4: Glance（イメージサービス）** ⭐⭐](#phase-4-glanceイメージサービス-)
+    - [**Phase 5: Nova（コンピュートサービス）** ⭐⭐⭐](#phase-5-novaコンピュートサービス-)
+    - [**Phase 6: Neutron（ネットワークサービス）** ⭐⭐⭐⭐](#phase-6-neutronネットワークサービス-)
+    - [**Phase 7: 初回VM起動** ⭐⭐](#phase-7-初回vm起動-)
+    - [**Phase 8: Cinder（ボリュームサービス）** ⭐⭐⭐](#phase-8-cinderボリュームサービス-)
+    - [**Phase 9: 基本演習・統合確認** ⭐⭐](#phase-9-基本演習統合確認-)
   - [🔧 オプション学習項目（深掘り用）](#-オプション学習項目深掘り用)
     - [**カテゴリA: 管理機能強化**](#カテゴリa-管理機能強化)
       - [**項目A-1: Horizon（ダッシュボード）** ⭐⭐](#項目a-1-horizonダッシュボード-)
@@ -497,9 +495,9 @@ Vagrantfileは以下の設計思想で作成されています：
 
 ## ⚡ コアパス（最短ルート）
 
-最小限の時間で一通りの機能を学び、実際にVMを起動できるまでの必須項目です。
+最小限の時間で一通りの機能を学び、実際にVMを起動できるまでの必須項目です。OpenStackの各主要サービスを1つずつ順序立てて学習します。
 
-### **Phase 1: 環境準備**
+### **Phase 1: 環境準備** ⭐⭐
 
 **目的**: VagrantでVM環境を構築
 
@@ -553,7 +551,7 @@ Vagrantfileは以下の設計思想で作成されています：
 
 ---
 
-### **Phase 2: 基盤構築**
+### **Phase 2: 基盤構築** ⭐⭐⭐
 
 **目的**: OpenStackの土台を作る
 
@@ -603,13 +601,11 @@ Vagrantfileは以下の設計思想で作成されています：
 
 ---
 
-### **Phase 3: コアサービス構築**
+### **Phase 3: Keystone（認証サービス）** ⭐⭐⭐
 
-**目的**: 最小限のサービスでVMを起動
+**目的**: OpenStackの認証・認可基盤を構築
 
-#### **Step 3-1: Keystone（認証サービス）の構築** ⭐⭐⭐
-
-**3-1-1: Keystoneのインストール**
+**Step 3-1: Keystoneのインストール** ⭐⭐⭐
 
 - keystoneデータベースの作成
 - keystoneユーザーの作成と権限付与
@@ -621,9 +617,7 @@ Vagrantfileは以下の設計思想で作成されています：
 - Apache HTTP Serverの設定
 - サービスの起動
 
-**参考**: [Server World - Keystone](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=3)
-
-**3-1-2: プロジェクト・ユーザー・ロールの作成**
+**Step 3-2: プロジェクト・ユーザー・ロールの作成** ⭐⭐⭐
 
 - adminプロジェクトの作成
 - adminユーザーの作成
@@ -637,12 +631,18 @@ Vagrantfileは以下の設計思想で作成されています：
 - Keystoneの役割（認証・認可）
 - プロジェクト、ユーザー、ロールの関係
 - エンドポイントの概念
+- OpenStackサービス間認証の仕組み
+
+**参考**: [Server World - Keystone](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=3)
+**詳細手順**: [Phase 3: Keystone構築](phase3_keystone.md)
 
 ---
 
-#### **Step 3-2: Glance（イメージサービス）の構築** ⭐⭐⭐
+### **Phase 4: Glance（イメージサービス）** ⭐⭐
 
-**3-2-1: Glanceのインストール**
+**目的**: VMイメージの管理システムを構築
+
+**Step 4-1: Glanceのインストール** ⭐⭐⭐
 
 - glanceデータベースの作成
 - glanceユーザーの作成
@@ -656,66 +656,54 @@ Vagrantfileは以下の設計思想で作成されています：
 - データベースの同期
 - サービスの起動
 
-**参考**: [Server World - Glance](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)
-
-**3-2-2: テストイメージのアップロード**
+**Step 4-2: テストイメージのアップロード** ⭐⭐
 
 - Ubuntu Cloud ImageのダウンロードとGlanceへの登録
+- イメージプロパティの設定
+- 動作確認
 
 **学習ポイント**:
 
 - Glanceのアーキテクチャ
 - イメージストレージの仕組み
 - クラウドイメージとは何か
+- イメージの形式とプロパティ
+
+**参考**: [Server World - Glance](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)
+**詳細手順**: [Phase 4: Glance構築](phase4_glance.md)
 
 ---
 
-#### **Step 3-3: Nova（コンピュートサービス）の構築** ⭐⭐⭐
+### **Phase 5: Nova（コンピュートサービス）** ⭐⭐⭐
 
-**3-3-1: Novaコントローラ側のインストール**
+**目的**: 仮想マシンの管理システムを構築
+
+**Step 5-1: Novaコントローラ側のインストール** ⭐⭐⭐
 
 - novaデータベースの作成（nova_api、nova、nova_cell0）
 - novaユーザーの作成
 - Keystoneでのサービス登録
 - エンドポイントの作成
 - Novaパッケージのインストール
-  - nova-api
-  - nova-conductor
-  - nova-scheduler
-  - nova-novncproxy
+  - nova-api、nova-conductor、nova-scheduler、nova-novncproxy
 - /etc/nova/nova.conf の設定
-  - データベース接続
-  - RabbitMQ接続
-  - Keystone認証設定
-  - VNC設定
-  - Neutron設定（後で追加）
-- データベースの同期
-- Cell0の登録
-- Cell1の作成
+  - データベース接続、RabbitMQ接続、Keystone認証設定、VNC設定
+- データベースの同期、Cell0の登録、Cell1の作成
 - サービスの起動
 
-**参考**: [Server World - Nova Controller](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=5)
-
-**3-3-2: Novaコンピュート側のインストール**
+**Step 5-2: Novaコンピュート側のインストール** ⭐⭐⭐
 
 - Novaパッケージのインストール（nova-compute）
 - /etc/nova/nova.conf の設定
-  - コントローラへの接続設定
-  - ハイパーバイザー設定（KVM）
-  - VNC設定
+  - コントローラへの接続設定、ハイパーバイザー設定（KVM）、VNC設定
 - libvirt / KVMの設定確認
 - サービスの起動
 - コントローラでのコンピュートノード登録確認
 
-**参考**: [Server World - Nova Compute](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=6)
-
-**3-3-3: Flavorの作成**
+**Step 5-3: Flavorの作成** ⭐⭐
 
 - 標準Flavor（m1.tiny、m1.small、m1.medium、m1.large）の作成
-
-**3-3-4: Nova動作確認**
-
-- サービス一覧とハイパーバイザー一覧の確認
+- Nova動作確認
 
 **学習ポイント**:
 
@@ -724,85 +712,47 @@ Vagrantfileは以下の設計思想で作成されています：
 - ハイパーバイザー（KVM）の理解
 - Cellの概念
 
+**参考**: [Server World - Nova Controller](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=5) / [Nova Compute](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=6)
+**詳細手順**: [Phase 5: Nova構築](phase5_nova.md)
+
 ---
 
-#### **Step 3-4: Neutron（ネットワークサービス）の構築** ⭐⭐⭐
+### **Phase 6: Neutron（ネットワークサービス）** ⭐⭐⭐⭐
 
-**3-4-1: Neutronサーバーの構築**
+**目的**: 仮想ネットワークの管理システムを構築
+
+**Step 6-1: Neutronサーバーの構築** ⭐⭐⭐
 
 - neutronデータベースの作成
 - neutronユーザーの作成
 - Keystoneでのサービス登録
 - エンドポイントの作成
 - Neutronパッケージのインストール（neutron-server、neutron-plugin-ml2）
-- /etc/neutron/neutron.conf の設定
-  - データベース接続
-  - RabbitMQ接続
-  - Keystone認証設定
-  - Nova通知設定
-- /etc/neutron/plugins/ml2/ml2_conf.ini の設定
-  - タイプドライバ（flat、vxlan）
-  - テナントネットワークタイプ（vxlan）
-  - メカニズムドライバ（openvswitch）
-  - VXLANの設定
-- データベースの同期
-- サービスの起動
+- /etc/neutron/neutron.conf と ml2_conf.ini の設定
+- データベースの同期、サービスの起動
 
-**参考**: [Server World - Neutron Controller](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=7)
+**Step 6-2: ネットワークノードの構築** ⭐⭐⭐
 
-**3-4-2: ネットワークノードの構築**
-
-- Neutronパッケージのインストール
-  - neutron-l3-agent
-  - neutron-dhcp-agent
-  - neutron-metadata-agent
-  - neutron-openvswitch-agent
+- Neutronパッケージのインストール（l3-agent、dhcp-agent、metadata-agent、openvswitch-agent）
 - Open vSwitchのインストールと設定
-- /etc/neutron/neutron.conf の設定
-- /etc/neutron/l3_agent.ini の設定（L3 Agent）
-- /etc/neutron/dhcp_agent.ini の設定（DHCP Agent）
-- /etc/neutron/metadata_agent.ini の設定（Metadata Agent）
-- /etc/neutron/plugins/ml2/openvswitch_agent.ini の設定
-  - ブリッジマッピング（外部ネットワーク）
-  - トンネル設定（VXLAN）
-- OVSブリッジ（br-ex）の作成と外部インターフェース（eth2）の接続
-
+- 各エージェントの設定ファイル編集
+- OVSブリッジ（br-ex）の作成と外部インターフェース接続
 - サービスの起動
 
-**参考**: [Server World - Neutron Network Node](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=8)
-
-**3-4-3: コンピュートノードのNeutronエージェント**
+**Step 6-3: コンピュートノードのNeutronエージェント** ⭐⭐⭐
 
 - Neutronパッケージのインストール（neutron-openvswitch-agent）
 - Open vSwitchのインストール
-- /etc/neutron/neutron.conf の設定
-- /etc/neutron/plugins/ml2/openvswitch_agent.ini の設定
-  - トンネル設定（VXLAN）
-- Nova設定の更新（/etc/nova/nova.conf）
-  - Neutron連携設定の追加
+- openvswitch_agent.ini の設定
+- Nova設定の更新（Neutron連携設定）
 - サービスの再起動
 
-**参考**: [Server World - Neutron Compute Node](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=9)
+**Step 6-4: ネットワークの作成** ⭐⭐⭐
 
-**3-4-4: 外部ネットワークの作成（FLAT）**
-
-- プロバイダーネットワーク（external-network）の作成
-- サブネット（192.168.1.0/24）の作成とFloating IPプールの設定
-
-**3-4-5: テナントネットワークの作成（VXLAN）**
-
-- プライベートネットワーク（private-network）の作成
-- サブネット（10.0.0.0/24）の作成
-
-**3-4-6: ルーターの作成**
-
-- ルーター（router1）の作成
-- 外部ネットワークへのゲートウェイ設定
-- プライベートネットワークの接続
-
-**3-4-7: Neutron動作確認**
-
-- ネットワークエージェント、ネットワーク、サブネット、ルーターの確認
+- 外部ネットワークの作成（FLAT）
+- テナントネットワークの作成（VXLAN）
+- ルーターの作成と設定
+- 動作確認
 
 **学習ポイント**:
 
@@ -812,29 +762,32 @@ Vagrantfileは以下の設計思想で作成されています：
 - Open vSwitchの役割
 - Floating IPの前提となるルーター設定
 
+**参考**: [Server World - Neutron](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=7)
+**詳細手順**: [Phase 6: Neutron構築](phase6_neutron.md)
+
 ---
 
-### **Phase 4: 初回VM起動**
+### **Phase 7: 初回VM起動** ⭐⭐
 
 **目的**: 初めてのVM起動を成功させる
 
-**Step 4-1: SSH鍵ペアの作成** ⭐⭐⭐
+**Step 7-1: SSH鍵ペアの作成** ⭐⭐⭐
 
 - SSH鍵ペアの生成とOpenStackへの登録
 
-**Step 4-2: セキュリティグループの設定** ⭐⭐⭐
+**Step 7-2: セキュリティグループの設定** ⭐⭐⭐
 
 - デフォルトセキュリティグループへのルール追加（SSH、ICMP、HTTP）
 
-**Step 4-3: VM（インスタンス）の作成** ⭐⭐⭐
+**Step 7-3: VM（インスタンス）の作成** ⭐⭐⭐
 
 - インスタンス（test-vm）の作成と起動確認
 
-**Step 4-4: Floating IPの割り当て** ⭐⭐⭐
+**Step 7-4: Floating IPの割り当て** ⭐⭐⭐
 
 - Floating IPの作成とインスタンスへの割り当て
 
-**Step 4-5: SSH接続確認** ⭐⭐⭐
+**Step 7-5: SSH接続確認** ⭐⭐⭐
 
 - pingによる疎通確認
 - SSH接続とVM内での動作確認
@@ -846,39 +799,15 @@ Vagrantfileは以下の設計思想で作成されています：
 - Floating IPの役割
 - プライベートIPとFloating IPの関係
 
----
-
-### **Phase 5: 基本演習**
-
-**目的**: 実践的なスキルを身につける
-
-#### **Step 5-1: 演習1 - Webサーバー構築** ⭐⭐⭐
-
-**5-1-1: インスタンスの作成**
-
-- Webサーバー用インスタンス（web-server）の作成とFloating IPの割り当て
-
-**5-1-2: Nginxのインストール**
-
-- パッケージの更新とNginxのインストール
-- サービスの起動確認
-
-**5-1-3: 動作確認**
-
-- ブラウザでのアクセス確認
-- カスタムページの作成
-
-**学習ポイント**:
-
-- インスタンスの作成フロー
-- ネットワークの仕組み
-- Floating IPの実際の動作
+**詳細手順**: [Phase 7: 初回VM起動](phase7_first_vm.md)
 
 ---
 
-#### **Step 5-2: 演習4 - ボリューム管理** ⭐⭐⭐
+### **Phase 8: Cinder（ボリュームサービス）** ⭐⭐⭐
 
-**5-2-1: Cinderのインストール（コントローラ）**
+**目的**: 永続ブロックストレージシステムを構築
+
+**Step 8-1: Cinderのインストール（コントローラ）** ⭐⭐⭐
 
 - cinderデータベースの作成
 - cinderユーザーの作成
@@ -888,9 +817,7 @@ Vagrantfileは以下の設計思想で作成されています：
 - データベースの同期
 - サービスの起動
 
-**参考**: [Server World - Cinder](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=10)
-
-**5-2-2: Cinder Volumeのインストール（コントローラ兼用）**
+**Step 8-2: Cinder Volumeのインストール（コントローラ兼用）** ⭐⭐⭐
 
 - LVMのインストールと設定
 - ボリュームグループの作成
@@ -898,12 +825,12 @@ Vagrantfileは以下の設計思想で作成されています：
 - /etc/cinder/cinder.conf の設定（ボリュームバックエンド）
 - サービスの起動
 
-**5-2-3: ボリュームの作成と接続**
+**Step 8-3: ボリュームの作成と接続** ⭐⭐⭐
 
 - Cinderボリューム（data-volume）の作成
 - インスタンスへの接続とVM内でのフォーマット・マウント
 
-**5-2-4: スナップショットの作成**
+**Step 8-4: スナップショットの作成** ⭐⭐
 
 - ボリュームスナップショットの作成
 - スナップショットからのボリューム復元
@@ -914,6 +841,44 @@ Vagrantfileは以下の設計思想で作成されています：
 - 永続ストレージの重要性
 - ボリュームのライフサイクル管理
 - スナップショットによるバックアップ
+
+**参考**: [Server World - Cinder](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=10)
+**詳細手順**: [Phase 8: Cinder構築](phase8_cinder.md)
+
+---
+
+### **Phase 9: 基本演習・統合確認** ⭐⭐
+
+**目的**: 実践的なスキルを身につけ、全サービスの連携を確認
+
+**Step 9-1: Webサーバー構築演習** ⭐⭐⭐
+
+- Webサーバー用インスタンス（web-server）の作成とFloating IPの割り当て
+- パッケージの更新とNginxのインストール
+- サービスの起動確認
+- ブラウザでのアクセス確認とカスタムページの作成
+
+**Step 9-2: 全サービス連携確認** ⭐⭐
+
+- 各OpenStackサービスの状態確認
+- サービス間連携の動作確認
+- ログの確認方法
+
+**Step 9-3: 基本運用操作** ⭐⭐
+
+- インスタンスの停止・再起動・削除
+- ボリュームのデタッチ・アタッチ
+- 設定ファイルの基本的なバックアップ
+
+**学習ポイント**:
+
+- インスタンスの作成フロー
+- ネットワークの仕組み
+- Floating IPの実際の動作
+- OpenStack全体のサービス連携
+- 基本的な運用操作
+
+**詳細手順**: [Phase 9: 基本演習・統合確認](phase9_exercises.md)
 
 ---
 
@@ -1455,12 +1420,16 @@ Vagrantfileは以下の設計思想で作成されています：
 ```bash
 開始
  ↓
-[コアパス]
+[コアパス - 1サービス1Phase構成]
  ├─ Phase 1: 環境準備
- ├─ Phase 2: 基盤構築
- ├─ Phase 3: コアサービス構築
- ├─ Phase 4: 初回VM起動
- └─ Phase 5: 基本演習
+ ├─ Phase 2: 基盤構築 (MariaDB, RabbitMQ, Memcached)
+ ├─ Phase 3: Keystone (認証サービス)
+ ├─ Phase 4: Glance (イメージサービス)
+ ├─ Phase 5: Nova (コンピュートサービス)
+ ├─ Phase 6: Neutron (ネットワークサービス)
+ ├─ Phase 7: 初回VM起動
+ ├─ Phase 8: Cinder (ボリュームサービス)
+ └─ Phase 9: 基本演習・統合確認
  ↓
 さらに学習する？
  ├─ [Yes] → オプション学習項目
