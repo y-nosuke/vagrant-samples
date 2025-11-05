@@ -135,6 +135,18 @@ openstack-3node/
 ```bash
 # VM起動
 vagrant up
+# または
+vagrant up controller
+
+# プロビジョニングを伴う既存VMの起動
+vagrant up --provision
+# または
+vagrant up --provision controller
+
+# プロビジョニング
+vagrant provision
+# または
+vagrant provision controller
 
 # VM停止
 vagrant halt
@@ -152,6 +164,56 @@ vagrant ssh <node-name>
 vagrant status
 ```
 
+## 🚀 プロビジョニングスクリプト
+
+Vagrantfileに機能ごとのプロビジョニングスクリプトが定義されています。不要な機能はコメントアウトすることで実行をスキップできます。
+
+### 使用方法
+
+#### 1. 初回VM起動時（全プロビジョニング実行）
+
+```bash
+vagrant up
+```
+
+#### 2. 特定のプロビジョニングのみ実行
+
+```bash
+# コントローラノードのhosts設定のみ実行
+vagrant provision controller --provision-with hosts
+
+# Keystone関連をすべて実行
+vagrant provision controller --provision-with keystone-db,keystone-install,keystone-config,keystone-apache,keystone-bootstrap
+```
+
+#### 3. Vagrantfileでコメントアウト
+
+```ruby
+# 不要なプロビジョニングをコメントアウト
+# controller.vm.provision "rabbitmq", type: "shell", path: "provision/foundation_rabbitmq.sh"
+```
+
+### パスワードのカスタマイズ
+
+環境変数でパスワードを指定できます：
+
+```bash
+export MARIADB_ROOT_PASSWORD="your_password"
+export KEYSTONE_DBPASS="keystone_password"
+export ADMIN_PASS="admin_password"
+export RABBITMQ_PASSWORD="rabbitmq_password"
+
+vagrant up
+```
+
+### 利用可能なプロビジョニング
+
+- **全ノード共通**: `hosts`, `ntp`, `repository`
+- **基盤構築**: `mariadb`, `rabbitmq`, `memcached`
+- **Keystone**: `keystone-db`, `keystone-install`, `keystone-config`, `keystone-apache`, `keystone-bootstrap`
+
+📖 **詳細**: [provision/README.md](provision/README.md)
+
 ## ⚠️ トラブルシューティング
 
 問題が発生した場合は以下を参照：
@@ -167,7 +229,7 @@ vagrant status
 ## 🔗 参考リンク
 
 - [OpenStack公式ドキュメント](https://docs.openstack.org/)
-- [Server World - OpenStack Flamingo](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_flamingo)
+- [Server World - OpenStack Flamingo](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy)
 - [Vagrant Documentation](https://www.vagrantup.com/docs)
 - [VirtualBox Documentation](https://www.virtualbox.org/wiki/Documentation)
 

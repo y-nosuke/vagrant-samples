@@ -121,6 +121,72 @@ Write-Host ""
 # ========================================
 Write-Host "[3/3] Vagrant VMを起動中..." -ForegroundColor Yellow
 
+# VirtualBox VMsフォルダのパスを動的に取得
+Write-Host "  VirtualBox VMsフォルダを検出中..." -ForegroundColor White
+$vmsFolder = $null
+try {
+    $systemProperties = & VBoxManage list systemproperties 2>&1
+    if ($LASTEXITCODE -eq 0) {
+        $defaultMachineFolderLine = $systemProperties | Select-String -Pattern "Default machine folder:"
+        if ($defaultMachineFolderLine) {
+            $vmsFolder = ($defaultMachineFolderLine -split ":", 2)[1].Trim()
+            Write-Host "  ✓ VirtualBox VMsフォルダ: $vmsFolder" -ForegroundColor Green
+        } else {
+            Write-Host "  × VirtualBox VMsフォルダの検出に失敗しました" -ForegroundColor Yellow
+            Write-Host "    デフォルトパスを使用します" -ForegroundColor Yellow
+            # デフォルトパス（環境変数または標準パス）
+            $vmsFolder = if ($env:VBOX_USER_HOME) {
+                Join-Path $env:VBOX_USER_HOME "VirtualBox VMs"
+            } else {
+                Join-Path $env:USERPROFILE "VirtualBox VMs"
+            }
+        }
+    } else {
+        throw "VBoxManage list systemproperties の実行に失敗しました"
+    }
+} catch {
+    Write-Host "  × VirtualBox VMsフォルダの検出中にエラーが発生しました: $_" -ForegroundColor Yellow
+    Write-Host "    デフォルトパスを使用します" -ForegroundColor Yellow
+    # デフォルトパス（環境変数または標準パス）
+    $vmsFolder = if ($env:VBOX_USER_HOME) {
+        Join-Path $env:VBOX_USER_HOME "VirtualBox VMs"
+    } else {
+        Join-Path $env:USERPROFILE "VirtualBox VMs"
+    }
+}
+
+# 既存のVMフォルダを削除（Vagrantfileで定義されているVM名）
+$vmNames = @("openstack-controller", "openstack-network", "openstack-compute1")
+$deletedCount = 0
+
+if ($vmsFolder -and (Test-Path $vmsFolder)) {
+    Write-Host "  既存のVMフォルダを確認中..." -ForegroundColor White
+    foreach ($vmName in $vmNames) {
+        $vmFolderPath = Join-Path $vmsFolder $vmName
+        if (Test-Path $vmFolderPath) {
+            Write-Host "    既存のVMフォルダを削除中: $vmName" -ForegroundColor Yellow
+            try {
+                Remove-Item -Path $vmFolderPath -Recurse -Force -ErrorAction Stop
+                Write-Host "    ✓ 削除しました: $vmName" -ForegroundColor Green
+                $deletedCount++
+            } catch {
+                Write-Host "    × 削除に失敗しました: $vmName - $_" -ForegroundColor Red
+                Write-Host "      手動で削除してください: $vmFolderPath" -ForegroundColor Yellow
+            }
+        }
+    }
+    if ($deletedCount -eq 0) {
+        Write-Host "  ✓ 既存のVMフォルダは見つかりませんでした" -ForegroundColor Green
+    } else {
+        Write-Host "  ✓ $deletedCount 個の既存VMフォルダを削除しました" -ForegroundColor Green
+    }
+} else {
+    Write-Host "  × VirtualBox VMsフォルダが見つかりません: $vmsFolder" -ForegroundColor Yellow
+    Write-Host "    既存VMフォルダの削除をスキップします" -ForegroundColor Yellow
+}
+
+Write-Host ""
+
 # プロジェクトディレクトリに移動
 Set-Location $projectDir
 

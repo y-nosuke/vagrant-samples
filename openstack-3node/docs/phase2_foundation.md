@@ -180,9 +180,7 @@ vagrant ssh network
 sudo cp /etc/hosts /etc/hosts.backup
 sudo vim /etc/hosts
 # 同じ内容を追加
-ping -c 3 controller
-ping -c 3 network
-ping -c 3 compute1
+# 名前解決の確認
 exit
 
 # compute1ノードで同じ設定
@@ -190,9 +188,7 @@ vagrant ssh compute1
 sudo cp /etc/hosts /etc/hosts.backup
 sudo vim /etc/hosts
 # 同じ内容を追加
-ping -c 3 controller
-ping -c 3 network
-ping -c 3 compute1
+# 名前解決の確認
 exit
 ```
 
@@ -307,6 +303,9 @@ vagrant ssh controller
 sudo apt update
 sudo apt upgrade -y
 
+# add-apt-repositoryコマンドに必要なパッケージのインストール
+sudo apt install -y software-properties-common
+
 # OpenStack Epoxyリポジトリの追加
 sudo add-apt-repository cloud-archive:epoxy -y
 
@@ -324,6 +323,7 @@ sudo apt install -y python3-openstackclient
 vagrant ssh network
 sudo apt update
 sudo apt upgrade -y
+sudo apt install -y software-properties-common
 sudo add-apt-repository cloud-archive:epoxy -y
 sudo apt update
 sudo apt install -y python3-openstackclient
@@ -333,6 +333,7 @@ exit
 vagrant ssh compute1
 sudo apt update
 sudo apt upgrade -y
+sudo apt install -y software-properties-common
 sudo add-apt-repository cloud-archive:epoxy -y
 sudo apt update
 sudo apt install -y python3-openstackclient

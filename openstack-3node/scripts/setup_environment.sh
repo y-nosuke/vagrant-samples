@@ -121,6 +121,68 @@ echo ""
 # ========================================
 echo "[3/3] Vagrant VMを起動中..."
 
+# VirtualBox VMsフォルダのパスを動的に取得
+echo "  VirtualBox VMsフォルダを検出中..."
+VMS_FOLDER=""
+
+# VBoxManage list systemproperties でデフォルトマシンフォルダを取得
+if SYSTEM_PROPS=$(VBoxManage list systemproperties 2>/dev/null); then
+    DEFAULT_MACHINE_FOLDER=$(echo "$SYSTEM_PROPS" | grep "Default machine folder:" | cut -d: -f2 | sed 's/^[[:space:]]*//')
+    if [ -n "$DEFAULT_MACHINE_FOLDER" ]; then
+        VMS_FOLDER="$DEFAULT_MACHINE_FOLDER"
+        echo "  ✓ VirtualBox VMsフォルダ: $VMS_FOLDER"
+    else
+        echo "  × VirtualBox VMsフォルダの検出に失敗しました"
+        echo "    デフォルトパスを使用します"
+        # デフォルトパス（環境変数または標準パス）
+        if [ -n "$VBOX_USER_HOME" ]; then
+            VMS_FOLDER="$VBOX_USER_HOME/VirtualBox VMs"
+        else
+            VMS_FOLDER="$HOME/VirtualBox VMs"
+        fi
+    fi
+else
+    echo "  × VirtualBox VMsフォルダの検出中にエラーが発生しました"
+    echo "    デフォルトパスを使用します"
+    # デフォルトパス（環境変数または標準パス）
+    if [ -n "$VBOX_USER_HOME" ]; then
+        VMS_FOLDER="$VBOX_USER_HOME/VirtualBox VMs"
+    else
+        VMS_FOLDER="$HOME/VirtualBox VMs"
+    fi
+fi
+
+# 既存のVMフォルダを削除（Vagrantfileで定義されているVM名）
+VM_NAMES=("openstack-controller" "openstack-network" "openstack-compute1")
+DELETED_COUNT=0
+
+if [ -n "$VMS_FOLDER" ] && [ -d "$VMS_FOLDER" ]; then
+    echo "  既存のVMフォルダを確認中..."
+    for VM_NAME in "${VM_NAMES[@]}"; do
+        VM_FOLDER_PATH="$VMS_FOLDER/$VM_NAME"
+        if [ -d "$VM_FOLDER_PATH" ]; then
+            echo "    既存のVMフォルダを削除中: $VM_NAME"
+            if rm -rf "$VM_FOLDER_PATH" 2>/dev/null; then
+                echo "    ✓ 削除しました: $VM_NAME"
+                DELETED_COUNT=$((DELETED_COUNT + 1))
+            else
+                echo "    × 削除に失敗しました: $VM_NAME"
+                echo "      手動で削除してください: $VM_FOLDER_PATH"
+            fi
+        fi
+    done
+    if [ $DELETED_COUNT -eq 0 ]; then
+        echo "  ✓ 既存のVMフォルダは見つかりませんでした"
+    else
+        echo "  ✓ $DELETED_COUNT 個の既存VMフォルダを削除しました"
+    fi
+else
+    echo "  × VirtualBox VMsフォルダが見つかりません: $VMS_FOLDER"
+    echo "    既存VMフォルダの削除をスキップします"
+fi
+
+echo ""
+
 # プロジェクトディレクトリに移動
 cd "$PROJECT_DIR"
 

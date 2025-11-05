@@ -58,9 +58,23 @@ Vagrant.configure("2") do |config|
     # 起動後は管理ネットワーク経由でSSH接続可能
     # controller.ssh.host = "172.16.100.10"  # 起動完了後に有効化
 
-    # プロビジョニング (Phase 2以降で使用)
-    # controller.vm.provision "shell", path: "provision/common.sh"
-    # controller.vm.provision "shell", path: "provision/controller.sh"
+    # プロビジョニング（機能ごと、コメントアウトで実行をスキップ可能）
+    # 全ノード共通設定
+    controller.vm.provision "hosts", type: "shell", path: "provision/common_hosts.sh"
+    controller.vm.provision "ntp", type: "shell", path: "provision/common_ntp.sh"
+    controller.vm.provision "repository", type: "shell", path: "provision/common_repository.sh"
+
+    # 基盤構築（コントローラノード専用）
+    # controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_mariadb.sh"
+    # controller.vm.provision "rabbitmq", type: "shell", path: "provision/foundation_rabbitmq.sh"
+    # controller.vm.provision "memcached", type: "shell", path: "provision/foundation_memcached.sh"
+
+    # Keystone構築（コントローラノード専用）
+    # controller.vm.provision "keystone-db", type: "shell", path: "provision/keystone_db.sh"
+    # controller.vm.provision "keystone-install", type: "shell", path: "provision/keystone_install.sh"
+    # controller.vm.provision "keystone-config", type: "shell", path: "provision/keystone_config.sh"
+    # controller.vm.provision "keystone-apache", type: "shell", path: "provision/keystone_apache.sh"
+    # controller.vm.provision "keystone-bootstrap", type: "shell", path: "provision/keystone_bootstrap.sh"
   end
 
   #=============================================================================
@@ -92,9 +106,10 @@ Vagrant.configure("2") do |config|
     # 起動後は管理ネットワーク経由でSSH接続可能
     # network.ssh.host = "172.16.100.20"  # 起動完了後に有効化
 
-    # プロビジョニング (Phase 2以降で使用)
-    # network.vm.provision "shell", path: "provision/common.sh"
-    # network.vm.provision "shell", path: "provision/network.sh"
+    # プロビジョニング（全ノード共通設定のみ）
+    network.vm.provision "hosts", type: "shell", path: "provision/common_hosts.sh"
+    network.vm.provision "ntp", type: "shell", path: "provision/common_ntp.sh"
+    network.vm.provision "repository", type: "shell", path: "provision/common_repository.sh"
   end
 
   #=============================================================================
@@ -127,9 +142,10 @@ Vagrant.configure("2") do |config|
     # 起動後は管理ネットワーク経由でSSH接続可能
     # compute.ssh.host = "172.16.100.31"  # 起動完了後に有効化
 
-    # プロビジョニング (Phase 2以降で使用)
-    # compute.vm.provision "shell", path: "provision/common.sh"
-    # compute.vm.provision "shell", path: "provision/compute.sh"
+    # プロビジョニング（全ノード共通設定のみ）
+    compute.vm.provision "hosts", type: "shell", path: "provision/common_hosts.sh"
+    compute.vm.provision "ntp", type: "shell", path: "provision/common_ntp.sh"
+    compute.vm.provision "repository", type: "shell", path: "provision/common_repository.sh"
   end
 
   #=============================================================================
