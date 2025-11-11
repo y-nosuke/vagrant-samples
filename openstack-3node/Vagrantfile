@@ -75,6 +75,13 @@ Vagrant.configure("2") do |config|
     # controller.vm.provision "keystone-config", type: "shell", path: "provision/keystone_config.sh"
     # controller.vm.provision "keystone-apache", type: "shell", path: "provision/keystone_apache.sh"
     # controller.vm.provision "keystone-bootstrap", type: "shell", path: "provision/keystone_bootstrap.sh"
+
+    # Glance構築（コントローラノード専用）
+    # controller.vm.provision "glance-db", type: "shell", path: "provision/glance_db.sh"
+    # controller.vm.provision "glance-install", type: "shell", path: "provision/glance_install.sh"
+    # controller.vm.provision "glance-config", type: "shell", path: "provision/glance_config.sh"
+    # controller.vm.provision "glance-service", type: "shell", path: "provision/glance_service.sh"
+    # controller.vm.provision "glance-upload-image", type: "shell", path: "provision/glance_upload_image.sh", privileged: false
   end
 
   #=============================================================================

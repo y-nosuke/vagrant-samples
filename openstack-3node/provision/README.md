@@ -15,6 +15,7 @@
 - `foundation_mariadb.sh` - MariaDBのインストールと設定
 - `foundation_rabbitmq.sh` - RabbitMQのインストールと設定
 - `foundation_memcached.sh` - Memcachedのインストールと設定
+- `foundation_nginx.sh` - Nginxのインストール（Glance用）
 
 ### Keystone構築（コントローラノード専用）
 
@@ -23,6 +24,15 @@
 - `keystone_config.sh` - Keystone設定ファイルの編集とDB同期
 - `keystone_apache.sh` - Apache設定
 - `keystone_bootstrap.sh` - Keystone Bootstrapとadmin-openrc作成
+
+### Glance構築（コントローラノード専用）
+
+- `glance_db.sh` - Glanceデータベースの作成
+- `glance_install.sh` - Glanceパッケージのインストールとサービス登録
+- `glance_config.sh` - Glance設定ファイルの編集とDB同期
+- `glance_nginx.sh` - Nginx設定（Glance API用、リバースプロキシ）
+- `glance_service.sh` - Glanceサービスの起動（Nginx経由）
+- `glance_upload_image.sh` - テストイメージのアップロード（オプション）
 
 ## 🚀 使用方法
 
@@ -40,6 +50,13 @@ controller.vm.provision "repository", type: "shell", path: "provision/common_rep
 # 基盤構築（コントローラノード専用）
 controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_mariadb.sh"
 # controller.vm.provision "rabbitmq", type: "shell", path: "provision/foundation_rabbitmq.sh"  # コメントアウトでスキップ
+
+# Glance構築（コントローラノード専用）
+controller.vm.provision "glance-db", type: "shell", path: "provision/glance_db.sh"
+controller.vm.provision "glance-install", type: "shell", path: "provision/glance_install.sh"
+controller.vm.provision "glance-config", type: "shell", path: "provision/glance_config.sh"
+controller.vm.provision "glance-service", type: "shell", path: "provision/glance_service.sh"
+# controller.vm.provision "glance-upload-image", type: "shell", path: "provision/glance_upload_image.sh", privileged: false  # オプション
 ```
 
 ### 実行方法
@@ -110,6 +127,13 @@ controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_ma
    - keystone-apache
    - keystone-bootstrap
 
+4. **Glance構築**（controllerのみ）
+   - glance-db
+   - glance-install
+   - glance-config
+   - glance-service
+   - glance-upload-image（オプション）
+
 ## ✅ 冪等性
 
 各スクリプトは冪等性を持っています。つまり、何度実行しても同じ結果になります。
@@ -123,6 +147,8 @@ controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_ma
 - RabbitMQ openstack: `rabbitmq123`
 - Keystone DB: `keystone123`
 - Admin User: `admin123`
+- Glance DB: `password123`
+- Glance User: `password123`
 
 **本番環境では必ず強力なパスワードに変更してください。**
 
@@ -159,6 +185,27 @@ sudo bash /vagrant/provision/foundation_mariadb.sh
 
 # 3. Keystone DB作成
 sudo bash /vagrant/provision/keystone_db.sh
+```
+
+### 例4: Phase 4（Glance）だけ実行
+
+Phase 3まで完了していて、Phase 4（Glance）だけやり直したい場合：
+
+```bash
+# VagrantfileでPhase 4以外をコメントアウト
+# その後、Glance関連のプロビジョニングのみ実行
+vagrant provision controller --provision-with glance-db,glance-install,glance-config,glance-service
+
+# イメージアップロードも含める場合
+vagrant provision controller --provision-with glance-db,glance-install,glance-config,glance-service,glance-upload-image
+```
+
+### 例5: イメージアップロードのみ実行
+
+Glanceの設定は完了していて、追加のイメージをアップロードしたい場合：
+
+```bash
+vagrant provision controller --provision-with glance-upload-image
 ```
 
 ## ⚠️ トラブルシューティング
@@ -201,4 +248,15 @@ openstack role list
 openstack endpoint list
 ```
 
-Phase 4以降のプロビジョニングスクリプトは、必要に応じて追加予定です。
+Phase 4が完了したら、以下のコマンドで動作確認を行ってください：
+
+```bash
+vagrant ssh controller
+source ~/admin-openrc
+openstack service list | grep image
+openstack endpoint list --service image
+openstack image list
+sudo systemctl status glance-api
+```
+
+Phase 5以降のプロビジョニングスクリプトは、必要に応じて追加予定です。

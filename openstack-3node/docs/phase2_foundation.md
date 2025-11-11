@@ -32,7 +32,11 @@
     - [Memcachedのインストール](#memcachedのインストール)
     - [設定ファイルの編集](#設定ファイルの編集)
     - [サービスの起動](#サービスの起動)
-  - [📝 Step 2-5: 基盤の動作確認](#-step-2-5-基盤の動作確認)
+  - [📝 Step 2-5: Nginxのインストール](#-step-2-5-nginxのインストール)
+    - [Nginxのインストール](#nginxのインストール)
+    - [デフォルトサイトの無効化](#デフォルトサイトの無効化)
+    - [サービスの起動](#サービスの起動-1)
+  - [📝 Step 2-6: 基盤の動作確認](#-step-2-6-基盤の動作確認)
     - [ノード間通信の確認](#ノード間通信の確認)
     - [データベース接続確認](#データベース接続確認)
     - [RabbitMQ動作確認](#rabbitmq動作確認)
@@ -58,6 +62,7 @@
 - **データベース**: MariaDB（認証情報、設定情報の永続化）
 - **メッセージキュー**: RabbitMQ（サービス間非同期通信）
 - **キャッシュ**: Memcached（認証トークンのキャッシュ）
+- **Webサーバー**: Nginx（Glance用、大容量ファイル転送に最適化）
 
 ---
 
@@ -120,11 +125,12 @@ graph TB
 
 ### サービス間の依存関係
 
-| サービス  | 役割             | 使用ポート | 利用するOpenStackサービス |
-| --------- | ---------------- | ---------- | ------------------------- |
-| MariaDB   | データ永続化     | 3306       | 全サービス                |
-| RabbitMQ  | メッセージキュー | 5672       | Nova, Neutron, Cinder     |
-| Memcached | キャッシュ       | 11211      | Keystone（主に）          |
+| サービス  | 役割             | 使用ポート | 利用するOpenStackサービス  |
+| --------- | ---------------- | ---------- | -------------------------- |
+| MariaDB   | データ永続化     | 3306       | 全サービス                 |
+| RabbitMQ  | メッセージキュー | 5672       | Nova, Neutron, Cinder      |
+| Memcached | キャッシュ       | 11211      | Keystone（主に）           |
+| Nginx     | Webサーバー      | 9292       | Glance（リバースプロキシ） |
 
 ---
 
@@ -725,7 +731,77 @@ quit
 
 ---
 
-## 📝 Step 2-5: 基盤の動作確認
+## 📝 Step 2-5: Nginxのインストール
+
+NginxはGlanceサービスで使用します。大容量ファイル転送に適しているため、Server Worldの手順に従ってNginxをインストールします。
+
+> **📌 参考**: [Server World - 連携サービスのインストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=2)
+
+### Nginxのインストール
+
+**コントローラノードでの実行**:
+
+```bash
+vagrant ssh controller
+
+# Nginxのインストール
+sudo apt install -y nginx libnginx-mod-stream
+
+# インストール確認
+nginx -v
+```
+
+**期待される出力例**:
+
+```bash
+nginx version: nginx/1.18.0 (Ubuntu)
+```
+
+### デフォルトサイトの無効化
+
+**デフォルトサイトを無効化**:
+
+```bash
+# デフォルトサイトの無効化
+sudo unlink /etc/nginx/sites-enabled/default
+
+# 確認
+ls -la /etc/nginx/sites-enabled/
+```
+
+デフォルトサイトが表示されないことを確認します。
+
+### サービスの起動
+
+**Nginxサービスの起動**:
+
+```bash
+# サービスの有効化と起動
+sudo systemctl enable nginx
+sudo systemctl restart nginx
+
+# 動作確認
+sudo systemctl status nginx
+```
+
+**ポート確認**:
+
+```bash
+# Nginxがリスニングしているか確認（デフォルトではポート80）
+sudo ss -tuln | grep :80
+```
+
+**期待される出力例**:
+
+```bash
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
+```
+
+> **📌 注意**: この時点ではデフォルトサイトを無効化しているため、ポート80でアクセスしてもエラーが返ります。これは正常です。Glanceの設定時にポート9292で設定します。
+
+---
+
+## 📝 Step 2-6: 基盤の動作確認
 
 ### ノード間通信の確認
 
@@ -855,6 +931,8 @@ Value: test_value
 - [ ] RabbitMQでopenstackユーザーが作成されている
 - [ ] Memcachedがコントローラノードで動作している
 - [ ] 他ノードからMemcachedに接続できる
+- [ ] Nginxがコントローラノードでインストールされている
+- [ ] Nginxサービスが正常に動作している
 - [ ] 全ての基盤サービスが正常に動作している
 
 **確認コマンド例**:
@@ -864,10 +942,10 @@ Value: test_value
 vagrant ssh controller
 
 # サービス状態の一括確認
-sudo systemctl status mariadb rabbitmq-server memcached chrony
+sudo systemctl status mariadb rabbitmq-server memcached chrony nginx
 
 # ポート確認
-sudo ss -tuln | grep -E "(3306|5672|11211)"
+sudo ss -tuln | grep -E "(3306|5672|11211|80)"
 
 # 他ノードからの接続確認
 mysql -h controller -u root -p -e "SELECT 1;"
