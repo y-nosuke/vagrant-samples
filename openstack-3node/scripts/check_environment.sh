@@ -29,11 +29,77 @@ echo "[1/4] 仮想化支援機能を確認中..."
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
     # macOS
-    if sysctl -a 2>/dev/null | grep -q "machdep.cpu.features.*VMX"; then
-        echo "✓ 仮想化支援機能が有効です (Intel VT-x)"
+    ARCH=$(uname -m)
+
+    if [[ "$ARCH" == "arm64" ]]; then
+        # Apple Silicon (M1/M2/M3など)
+        echo "✓ Apple Silicon Macを検出しました ($ARCH)"
+        echo "  注: Apple Siliconでは仮想化は常に有効です"
+        echo ""
+
+        # VirtualBoxのバージョンをチェック（インストールされている場合）
+        if command -v VBoxManage &> /dev/null; then
+            VBOX_VERSION=$(VBoxManage --version 2>/dev/null || echo "")
+            if [[ -n "$VBOX_VERSION" ]]; then
+                # バージョン番号を抽出（例: "7.2.4r170995" -> "7.2.4"）
+                VBOX_MAJOR_MINOR=$(echo "$VBOX_VERSION" | cut -d'r' -f1 | cut -d'.' -f1-2)
+                VBOX_MAJOR=$(echo "$VBOX_MAJOR_MINOR" | cut -d'.' -f1)
+                VBOX_MINOR=$(echo "$VBOX_MAJOR_MINOR" | cut -d'.' -f2)
+
+                # バージョン7.1以上でApple Silicon対応
+                if [[ "$VBOX_MAJOR" -gt 7 ]] || [[ "$VBOX_MAJOR" -eq 7 && "$VBOX_MINOR" -ge 1 ]]; then
+                    echo "✓ VirtualBox $VBOX_VERSION はApple Siliconに対応しています"
+                    echo "  (VirtualBox 7.1以降でApple Siliconサポートが追加されました)"
+                    echo ""
+                    echo "  注意: 一部の機能やパフォーマンスに制限がある可能性があります"
+                    echo "  - x86_64ゲストOSはエミュレーションモードで動作（パフォーマンス低下）"
+                    echo "  - ARMゲストOS（Windows 11 ARM版など）はネイティブで動作"
+                else
+                    echo ":warning:  VirtualBox $VBOX_VERSION はApple Siliconに対応していません"
+                    echo "  Apple SiliconサポートにはVirtualBox 7.1以降が必要です"
+                    echo "  アップグレード方法: brew upgrade --cask virtualbox"
+                    echo "  または公式サイト: https://www.virtualbox.org/wiki/Downloads"
+                    echo ""
+                    echo "  推奨される代替案:"
+                    echo "    - UTM (https://mac.getutm.app/) - 無料、オープンソース"
+                    echo "    - Parallels Desktop - 有料、高性能"
+                    echo "    - VMware Fusion - 有料、企業向け"
+                fi
+            fi
+        else
+            echo ":information_source:  VirtualBoxがインストールされていません"
+            echo "  VirtualBox 7.1以降をインストールすると、Apple Siliconに対応します"
+            echo "  インストール方法: brew install --cask virtualbox"
+            echo "  公式サイト: https://www.virtualbox.org/wiki/Downloads"
+        fi
+        # Apple Siliconでは仮想化は常に有効なので、チェックはパス
+    elif [[ "$ARCH" == "x86_64" ]]; then
+        # Intel Mac
+        if sysctl -a 2>/dev/null | grep -q "machdep.cpu.features.*VMX"; then
+            echo "✓ 仮想化支援機能が有効です (Intel VT-x)"
+        else
+            echo "× 仮想化支援機能が無効または確認できませんでした"
+            echo "  警告: VirtualBoxでVMを実行するには、仮想化支援機能が必要です"
+            echo ""
+            echo "  対処方法:"
+            echo "  1. Macを再起動し、起動音が聞こえたら Command(⌘) + R を押し続けて"
+            echo "     リカバリーモードに入ります"
+            echo "  2. メニューバーから「ユーティリティ」→「ターミナル」を選択"
+            echo "  3. ターミナルで以下を実行（セキュリティ設定を一時的に無効化）:"
+            echo "     csrutil disable"
+            echo "  4. Macを再起動"
+            echo "  5. 仮想化ソフトウェアをインストール・使用"
+            echo "  6. 使用後、セキュリティを再度有効化するため、リカバリーモードで:"
+            echo "     csrutil enable"
+            echo ""
+            echo "  注意: csrutil disableはセキュリティを低下させるため、"
+            echo "        通常は推奨されません。まずは以下を確認してください:"
+            echo "  - システム設定 > プライバシーとセキュリティで仮想化関連の設定を確認"
+            echo "  - VirtualBoxの最新版を使用しているか確認"
+            ALL_CHECKS_PASSED=false
+        fi
     else
-        echo "× 仮想化支援機能が無効または確認できませんでした"
-        echo "  警告: VirtualBoxでVMを実行するには、仮想化支援機能が必要です"
+        echo "警告: 不明なアーキテクチャ ($ARCH) を検出しました"
         ALL_CHECKS_PASSED=false
     fi
 elif [[ "$OSTYPE" == "linux-gnu"* ]]; then

@@ -74,21 +74,31 @@ openstack-3node/
    - MariaDB、RabbitMQ、Memcached構築
    - OpenStackの基盤を準備
 
-3. **[Phase 3: コアサービス構築](docs/phase3_core_services.md)**
-   - Keystone（認証）
-   - Glance（イメージ）
-   - Nova（コンピュート）
-   - Neutron（ネットワーク）
+3. **[Phase 3: Keystone（認証サービス）](docs/phase3_keystone.md)**
+   - OpenStackの認証・認可基盤を構築
+   - プロジェクト、ユーザー、ロールの作成
 
-4. **[Phase 4: 初回VM起動](docs/phase4_first_vm.md)**
+4. **[Phase 4: Glance（イメージサービス）](docs/phase4_glance.md)**
+   - VMイメージの管理システムを構築
+
+5. **[Phase 5: Nova（コンピュートサービス）](docs/phase5_nova.md)**
+   - 仮想マシンの管理システムを構築
+
+6. **[Phase 6: Neutron（ネットワークサービス）](docs/phase6_neutron.md)**
+   - 仮想ネットワークの管理システムを構築
+
+7. **[Phase 7: 初回VM起動](docs/phase7_first_vm.md)**
    - SSH鍵ペア作成
    - セキュリティグループ設定
    - VMインスタンス起動
    - Floating IP割り当て
 
-5. **[Phase 5: 基本演習](docs/phase5_exercises.md)**
+8. **[Phase 8: Cinder（ボリュームサービス）](docs/phase8_cinder.md)**
+   - 永続ブロックストレージシステムを構築
+
+9. **[Phase 9: 基本演習・統合確認](docs/phase9_exercises.md)**
    - Webサーバー構築
-   - ボリューム管理
+   - 全サービスの連携確認
 
 ### オプション学習（選択）
 
@@ -116,9 +126,13 @@ openstack-3node/
 
 - [phase1_environment_setup.md](docs/phase1_environment_setup.md) - Phase 1: 環境準備
 - [phase2_foundation.md](docs/phase2_foundation.md) - Phase 2: 基盤構築
-- [phase3_core_services.md](docs/phase3_core_services.md) - Phase 3: コアサービス
-- [phase4_first_vm.md](docs/phase4_first_vm.md) - Phase 4: 初回VM起動
-- [phase5_exercises.md](docs/phase5_exercises.md) - Phase 5: 基本演習
+- [phase3_keystone.md](docs/phase3_keystone.md) - Phase 3: Keystone（認証サービス）
+- [phase4_glance.md](docs/phase4_glance.md) - Phase 4: Glance（イメージサービス）
+- [phase5_nova.md](docs/phase5_nova.md) - Phase 5: Nova（コンピュートサービス）
+- [phase6_neutron.md](docs/phase6_neutron.md) - Phase 6: Neutron（ネットワークサービス）
+- [phase7_first_vm.md](docs/phase7_first_vm.md) - Phase 7: 初回VM起動
+- [phase8_cinder.md](docs/phase8_cinder.md) - Phase 8: Cinder（ボリュームサービス）
+- [phase9_exercises.md](docs/phase9_exercises.md) - Phase 9: 基本演習・統合確認
 
 ### 付録
 

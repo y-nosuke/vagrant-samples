@@ -22,7 +22,6 @@
     - [MariaDBのインストール](#mariadbのインストール)
     - [root用パスワード設定](#root用パスワード設定)
     - [リモート接続の設定](#リモート接続の設定)
-    - [文字コード設定（UTF-8）](#文字コード設定utf-8)
     - [OpenStack用データベースの作成準備](#openstack用データベースの作成準備)
   - [📝 Step 2-3: RabbitMQのインストール](#-step-2-3-rabbitmqのインストール)
     - [RabbitMQのインストール](#rabbitmqのインストール)
@@ -312,8 +311,8 @@ sudo add-apt-repository cloud-archive:epoxy -y
 # パッケージリストの更新
 sudo apt update
 
-# OpenStackクライアントのインストール
-sudo apt install -y python3-openstackclient
+# リポジトリ追加後のパッケージ更新
+sudo apt upgrade -y
 ```
 
 **他のノードでも同様の設定**:
@@ -326,7 +325,7 @@ sudo apt upgrade -y
 sudo apt install -y software-properties-common
 sudo add-apt-repository cloud-archive:epoxy -y
 sudo apt update
-sudo apt install -y python3-openstackclient
+sudo apt upgrade -y
 exit
 
 # compute1ノード
@@ -336,7 +335,7 @@ sudo apt upgrade -y
 sudo apt install -y software-properties-common
 sudo add-apt-repository cloud-archive:epoxy -y
 sudo apt update
-sudo apt install -y python3-openstackclient
+sudo apt upgrade -y
 exit
 ```
 
@@ -349,19 +348,6 @@ exit
 sudo apt update
 sudo apt upgrade -y
 sudo apt autoremove -y
-```
-
-**OpenStackクライアントの動作確認**:
-
-```bash
-# OpenStackクライアントがインストールされているか確認
-openstack --version
-```
-
-**期待される出力例**:
-
-```bash
-openstack 7.4.0
 ```
 
 ---
@@ -448,41 +434,18 @@ sudo vim /etc/mysql/mariadb.conf.d/50-server.cnf
 [mysqld]
 # 以下の行を見つけて変更
 # bind-address = 127.0.0.1
-bind-address = 172.16.100.10
+bind-address = 0.0.0.0
 
-# 追加設定
-default-storage-engine = innodb
-innodb_file_per_table = on
-max_connections = 4096
-```
-
-### 文字コード設定（UTF-8）
-
-**文字コード設定ファイルの作成**:
-
-```bash
-sudo vim /etc/mysql/mariadb.conf.d/99-openstack.cnf
-```
-
-**内容**:
-
-```ini
-[mysqld]
-bind-address = 172.16.100.10
-
-default-storage-engine = innodb
-innodb_file_per_table = on
-max_connections = 4096
-
-# 文字コード設定
-character-set-server = utf8mb4
+# 追加設定（OpenStack推奨設定）
+# 注意: Server Worldの一般的なMariaDBページには記載されていませんが、
+# OpenStackの公式ドキュメントで推奨されている設定です
 collation-server = utf8mb4_general_ci
+character-set-server = utf8mb4
 
-[mysql]
-default-character-set = utf8mb4
-
-[client]
-default-character-set = utf8mb4
+default-storage-engine = innodb
+innodb_file_per_table = on
+max_connections = 4096
+init-connect = 'SET NAMES utf8mb4'
 ```
 
 **MariaDBサービスの再起動**:
@@ -507,7 +470,10 @@ mysql -u root -p
 
 ```sql
 -- リモート接続用のrootユーザーを作成
-CREATE USER 'root'@'%' IDENTIFIED BY 'password';
+-- 注意: mysql_secure_installationの「Disallow root login remotely? [Y/n] n」は
+--       既存のroot@'%'ユーザーを削除しないという意味であり、新規作成はしません。
+--       リモート接続を可能にするには、明示的にroot@'%'ユーザーを作成する必要があります。
+CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY 'password';
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
 
 -- 設定の反映
@@ -604,6 +570,7 @@ sudo rabbitmqctl list_users
 
 ```bash
 # 管理者権限の付与
+# 注意: Server Worldの手順には記載されていませんが、OpenStackサービスが正常に動作するために必要です
 sudo rabbitmqctl set_user_tags openstack administrator
 
 # 全リソースへのアクセス権限の付与
@@ -665,7 +632,7 @@ Memcachedもコントローラノードにインストールします。
 
 ```bash
 # Memcachedのインストール
-sudo apt install -y memcached python3-memcache
+sudo apt install -y memcached
 
 # 現在の設定確認
 sudo systemctl status memcached
@@ -687,12 +654,12 @@ sudo vim /etc/memcached.conf
 
 ```bash
 # 以下の行を見つけて変更
+# メモリサイズ（デフォルト64MBから変更）
+-m 128
+
 # -l 127.0.0.1
 # -l ::1
 -l 172.16.100.10
-
-# メモリサイズ（デフォルト64MBから変更）
--m 128
 ```
 
 **設定ファイル全体の確認**:
@@ -706,10 +673,12 @@ grep -v "^#" /etc/memcached.conf | grep -v "^$"
 
 ```bash
 -d
+logfile /var/log/memcached.log
 -m 128
 -p 11211
 -u memcache
 -l 172.16.100.10
+-P /var/run/memcached/memcached.pid
 ```
 
 ### サービスの起動
@@ -853,6 +822,8 @@ exit
 
 ```bash
 vagrant ssh controller
+
+sudo apt install -y python3-memcache
 
 # Python3での接続テスト
 python3 -c "

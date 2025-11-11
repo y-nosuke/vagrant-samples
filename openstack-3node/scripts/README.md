@@ -313,4 +313,3 @@ OpenStack学習環境 - ネットワーク設定
 
 - [Phase 1: 環境準備](../docs/phase1_environment_setup.md)
 - [Vagrantfile](../Vagrantfile)
-

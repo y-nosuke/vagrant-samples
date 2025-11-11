@@ -15,33 +15,34 @@
     - [認証フロー](#認証フロー)
   - [📝 Step 3-1: Keystoneのインストール](#-step-3-1-keystoneのインストール)
     - [データベースの作成](#データベースの作成)
-    - [Keystoneユーザーの作成と権限付与](#keystoneユーザーの作成と権限付与)
     - [Keystoneパッケージのインストール](#keystoneパッケージのインストール)
     - [Keystone設定ファイルの編集](#keystone設定ファイルの編集)
-      - [1. databaseセクション](#1-databaseセクション)
-      - [2. tokenセクション](#2-tokenセクション)
-      - [3. memcacheセクション](#3-memcacheセクション)
+      - [1. memcacheセクション](#1-memcacheセクション)
+      - [2. databaseセクション](#2-databaseセクション)
+      - [3. tokenセクション](#3-tokenセクション)
     - [データベースの同期](#データベースの同期)
     - [Fernetキーの設定](#fernetキーの設定)
     - [Credentialキーの設定](#credentialキーの設定)
+    - [Keystone Bootstrapの実行](#keystone-bootstrapの実行)
     - [SSL/TLS証明書の設定](#ssltls証明書の設定)
       - [方法1: Let's Encrypt証明書を使用（推奨・本番環境）](#方法1-lets-encrypt証明書を使用推奨本番環境)
       - [方法2: 自己署名証明書を作成（学習環境用）](#方法2-自己署名証明書を作成学習環境用)
     - [Apache HTTP Serverの設定](#apache-http-serverの設定)
     - [サービスの起動と確認](#サービスの起動と確認)
-  - [📝 Step 3-2: Keystoneの初期化（Bootstrap）](#-step-3-2-keystoneの初期化bootstrap)
-    - [Keystone Bootstrapの実行](#keystone-bootstrapの実行)
-    - [作成されたリソースの確認](#作成されたリソースの確認)
+  - [📝 Step 3-2: Keystoneの動作確認と設定](#-step-3-2-keystoneの動作確認と設定)
     - [環境変数ファイル（admin-openrc）の作成](#環境変数ファイルadmin-openrcの作成)
+    - [`service`プロジェクトの作成（必須）](#serviceプロジェクトの作成必須)
+    - [作成されたリソースの確認](#作成されたリソースの確認)
     - [動作確認](#動作確認)
   - [✅ Phase 3 完了チェックリスト](#-phase-3-完了チェックリスト)
   - [⚠️ トラブルシューティング](#️-トラブルシューティング)
     - [問題1: データベース接続エラー](#問題1-データベース接続エラー)
     - [問題2: Apacheサービスが起動しない](#問題2-apacheサービスが起動しない)
     - [問題3: Keystone APIが応答しない](#問題3-keystone-apiが応答しない)
-    - [問題4: トークン発行エラー](#問題4-トークン発行エラー)
-    - [問題5: データベース同期エラー](#問題5-データベース同期エラー)
-    - [問題6: WSGIファイルが見つからない](#問題6-wsgiファイルが見つからない)
+    - [問題4: OpenStack CLIコマンドで「Missing value auth-url required for auth plugin password」エラー](#問題4-openstack-cliコマンドでmissing-value-auth-url-required-for-auth-plugin-passwordエラー)
+    - [問題5: トークン発行エラー](#問題5-トークン発行エラー)
+    - [問題6: データベース同期エラー](#問題6-データベース同期エラー)
+    - [問題7: WSGIファイルが見つからない](#問題7-wsgiファイルが見つからない)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
   - [🔗 関連ドキュメント](#-関連ドキュメント)
@@ -167,32 +168,21 @@ sudo mysql -u root -p
 
 ```sql
 CREATE DATABASE keystone CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
 
-**keystone用のデータベースユーザーと権限の作成**:
+-- keystone用のデータベースユーザーと権限の作成
 
-```sql
 GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'localhost' IDENTIFIED BY 'KEYSTONE_DBPASS';
 GRANT ALL PRIVILEGES ON keystone.* TO 'keystone'@'%' IDENTIFIED BY 'KEYSTONE_DBPASS';
-```
 
-**権限の反映**:
-
-```sql
+-- 権限の反映
 FLUSH PRIVILEGES;
-```
 
-**データベース接続の確認**:
-
-```sql
+-- データベース接続の確認
 SHOW DATABASES;
-```
 
-keystoneデータベースが表示されることを確認します。
+-- keystoneデータベースが表示されることを確認します。
 
-**MariaDBから退出**:
-
-```sql
+-- MariaDBから退出
 EXIT;
 ```
 
@@ -200,16 +190,6 @@ EXIT;
 >
 > - 本番環境では `KEYSTONE_DBPASS` をより強力なパスワードに変更してください
 > - パスワードは環境変数やシークレット管理システムで管理することを推奨します
-
-### Keystoneユーザーの作成と権限付与
-
-**keystoneシステムユーザーの作成**:
-
-```bash
-sudo adduser --system --group --shell /bin/false keystone
-```
-
-このコマンドは通常何も出力しません。正常に完了しています。
 
 ### Keystoneパッケージのインストール
 
@@ -252,14 +232,21 @@ sudo vim /etc/keystone/keystone.conf
 
 **主要な設定項目を編集**:
 
-#### 1. databaseセクション
+#### 1. memcacheセクション
+
+```ini
+[memcache]
+servers = controller:11211
+```
+
+#### 2. databaseセクション
 
 ```ini
 [database]
 connection = mysql+pymysql://keystone:KEYSTONE_DBPASS@controller/keystone
 ```
 
-#### 2. tokenセクション
+#### 3. tokenセクション
 
 ```ini
 [token]
@@ -267,13 +254,6 @@ provider = fernet
 ```
 
 Fernetトークンプロバイダーを使用します（推奨）。
-
-#### 3. memcacheセクション
-
-```ini
-[memcache]
-servers = controller:11211
-```
 
 > **📌 注意**: Server Worldでは具体的なIPアドレス（例: `10.0.0.30:11211`）を指定していますが、Vagrant環境ではホスト名（`controller`）を使用します。Memcachedがローカルホストで動作している場合は`localhost:11211`でも問題ありません。
 
@@ -353,7 +333,7 @@ Created secondary key: /etc/keystone/fernet-keys/1
 **Fernetキーの確認**:
 
 ```bash
-ls -la /etc/keystone/fernet-keys/
+sudo ls -la /etc/keystone/fernet-keys/
 ```
 
 Fernetキーファイル（0、1など）が作成されていることを確認します。
@@ -376,18 +356,10 @@ Credentialはアプリケーション認証情報（Application Credentials）�
 sudo keystone-manage credential_setup --keystone-user keystone --keystone-group keystone
 ```
 
-**期待される出力**:
-
-```bash
-Created credential key repository: /etc/keystone/credential-keys
-Created primary key: /etc/keystone/credential-keys/0
-Created secondary key: /etc/keystone/credential-keys/1
-```
-
 **Credentialキーの確認**:
 
 ```bash
-ls -la /etc/keystone/credential-keys/
+sudo ls -la /etc/keystone/credential-keys/
 ```
 
 Credentialキーファイルが作成されていることを確認します。
@@ -400,9 +372,63 @@ Credentialキーファイルが作成されていることを確認します。
 > - **生成場所**: `/etc/keystone/credential-keys/` ディレクトリにキーファイルが作成されます
 > - **用途**: アプリケーションがユーザー認証情報を直接扱わずに認証できるようにする機能で使用されます
 
+### Keystone Bootstrapの実行
+
+`keystone-manage bootstrap`コマンドを使用して、Keystoneの初期設定を自動的に行います。このコマンドは、adminユーザー、adminプロジェクト、adminロール、およびサービスカタログを自動的に作成します。**注意**: `service`プロジェクトは自動作成されないため、この後の手順で手動作成する必要があります。
+
+**コントローラホスト名の設定**:
+
+コントローラホスト名を環境変数に設定します。
+
+```bash
+export controller=controller
+```
+
+> **📌 注意**: Vagrant環境では`controller`を使用します。ホスト名が異なる場合は適宜変更してください。
+
+**Keystone Bootstrapの実行**:
+
+```bash
+sudo keystone-manage bootstrap --bootstrap-password adminpassword \
+  --bootstrap-admin-url https://$controller:5000/v3/ \
+  --bootstrap-internal-url https://$controller:5000/v3/ \
+  --bootstrap-public-url https://$controller:5000/v3/ \
+  --bootstrap-region-id RegionOne
+```
+
+> **📌 注意**:
+>
+> - `adminpassword`は任意の管理者パスワードに置き換えてください
+> - この時点ではまだSSL/TLS証明書とApacheが設定されていません。bootstrapコマンド自体は証明書なしでも実行できますが、後でApacheを設定する際にHTTPSを使用するため、ここでHTTPSのURLを指定します
+
+**パラメータの説明**:
+
+- `--bootstrap-password adminpassword`: adminユーザーのパスワードを設定します（`adminpassword`は任意の強力なパスワードに置き換えてください）
+- `--bootstrap-admin-url`: 管理者用のKeystone APIエンドポイントURL
+- `--bootstrap-internal-url`: 内部ネットワーク用のKeystone APIエンドポイントURL
+- `--bootstrap-public-url`: 公開用のKeystone APIエンドポイントURL
+- `--bootstrap-region-id`: リージョンID（通常は`RegionOne`）
+
+> **📌 コマンド解説**: `keystone-manage bootstrap`
+>
+> - **目的**: Keystoneの初期設定を自動的に行います。OpenStackの標準的な初期化方法です
+> - **作成されるリソース**:
+>   - `default`ドメイン
+>   - `admin`プロジェクト
+>   - `admin`ユーザー
+>   - `admin`ロール
+>   - `member`ロール
+>   - `reader`ロール
+>   - `service`ロール
+>   - adminユーザーへのadminロールの割り当て
+>   - Keystoneサービスのエンドポイント
+> - **注意**: `service`プロジェクトは自動作成されません。この後の手順で手動作成する必要があります
+> - **参考**: [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)
+> - **注意**: このコマンドは初回実行時のみ使用します。既にKeystoneが初期化されている場合は実行しないでください
+
 ### SSL/TLS証明書の設定
 
-Server Worldの手順では、SSL/TLS証明書を使用したHTTPS設定が含まれています。以下のいずれかの方法で証明書を準備します。
+SSL/TLS証明書を使用したHTTPS設定を行います。以下のいずれかの方法で証明書を準備します。
 
 #### 方法1: Let's Encrypt証明書を使用（推奨・本番環境）
 
@@ -420,15 +446,19 @@ Server Worldの手順では、SSL/TLS証明書を使用したHTTPS設定が含�
 
 学習環境では、自己署名証明書を作成して使用できます。
 
+> **⚠️ 重要**: 最新のOpenSSLやクライアントライブラリは、CN（Common Name）だけでなくSAN（Subject Alternative Names）をチェックします。SANを含まない証明書は「Hostname mismatch」エラーが発生します。
+
 ```bash
-# OpenSSLを使用して自己署名証明書を作成
+# OpenSSLを使用して自己署名証明書を作成（SANを含む）
 sudo mkdir -p /etc/ssl/certs/keystone
 sudo mkdir -p /etc/ssl/private/keystone
 
+# SAN（Subject Alternative Names）を含む証明書を作成
 sudo openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
   -keyout /etc/ssl/private/keystone/keystone-key.pem \
   -out /etc/ssl/certs/keystone/keystone-cert.pem \
-  -subj "/C=JP/ST=State/L=City/O=Organization/CN=controller"
+  -subj "/C=JP/ST=State/L=City/O=Organization/CN=controller" \
+  -addext "subjectAltName=DNS:controller,DNS:localhost,IP:172.16.100.10,IP:127.0.0.1"
 
 # 証明書ファイルの権限設定
 sudo chmod 600 /etc/ssl/private/keystone/keystone-key.pem
@@ -437,8 +467,24 @@ sudo chmod 644 /etc/ssl/certs/keystone/keystone-cert.pem
 
 > **📌 注意**:
 >
+> - SANには以下の情報が含まれています：
+>   - `DNS:controller` - ホスト名
+>   - `DNS:localhost` - ローカルホスト名
+>   - `IP:172.16.100.10` - 管理ネットワークのIPアドレス
+>   - `IP:127.0.0.1` - ループバックアドレス
 > - 自己署名証明書はブラウザで警告が表示されますが、学習環境では問題ありません
 > - 本番環境では必ず正規のSSL証明書（Let's Encryptなど）を使用してください
+> - 証明書の内容を確認するには: `openssl x509 -in /etc/ssl/certs/keystone/keystone-cert.pem -text -noout | grep -A 2 "Subject Alternative Name"`
+
+**既存の証明書を再作成する場合**（SANを含まない証明書が既に存在する場合）:
+
+```bash
+# 既存の証明書を削除
+sudo rm -f /etc/ssl/certs/keystone/keystone-cert.pem
+sudo rm -f /etc/ssl/private/keystone/keystone-key.pem
+
+# 上記のコマンドでSANを含む証明書を再作成
+```
 
 ### Apache HTTP Serverの設定
 
@@ -449,6 +495,22 @@ KeystoneはApache HTTP Server上でWSGIアプリケーションとして動作�
 ```bash
 sudo apt install -y apache2 libapache2-mod-wsgi-py3
 ```
+
+**Apache基本設定**:
+
+`/etc/apache2/apache2.conf`にサーバー名を設定します。
+
+```bash
+sudo vim /etc/apache2/apache2.conf
+```
+
+70行目付近に以下を追加（または既存の`ServerName`行を編集）:
+
+```apache
+ServerName controller
+```
+
+> **📌 注意**: Server Worldの例では`dlp.srv.world`を使用していますが、Vagrant環境では`controller`を使用します。
 
 **Keystone用のApache設定ファイルのバックアップ**:
 
@@ -561,7 +623,7 @@ Alias /identity /usr/bin/keystone-wsgi-public
 
 > **📌 注意**:
 >
-> - Server Worldの手順ではLet's Encrypt証明書を使用しています
+> - 本番環境ではLet's Encrypt証明書の使用を推奨します
 > - 学習環境では自己署名証明書でも動作しますが、ブラウザで警告が表示されます
 > - 証明書ファイルのパスは、実際の環境に合わせて変更してください
 > - Ubuntu 24.04 + OpenStack Epoxyでは、ポート35357（adminポート）は使用されず、ポート5000のみで動作します。また、`/identity`エイリアスも設定されています。
@@ -601,6 +663,19 @@ PBR（Python Build Reasonableness）によって生成されたコードが含�
 sudo a2enmod ssl
 ```
 
+**期待される出力**:
+
+```bash
+Considering dependency mime for ssl:
+Module mime already enabled
+Considering dependency socache_shmcb for ssl:
+Enabling module socache_shmcb.
+Enabling module ssl.
+See /usr/share/doc/apache2/README.Debian.gz on how to configure SSL and create self-signed certificates.
+To activate the new configuration, you need to run:
+  systemctl restart apache2
+```
+
 **Apache設定の構文チェック**:
 
 ```bash
@@ -626,13 +701,15 @@ sudo a2ensite keystone
 ```bash
 Enabling site keystone.
 To activate the new configuration, you need to run:
-  systemctl reload apache2
+  systemctl restart apache2
 ```
 
 **Apache設定のリロード**:
 
+Apacheを再起動します。
+
 ```bash
-sudo systemctl reload apache2
+sudo systemctl restart apache2
 ```
 
 ### サービスの起動と確認
@@ -736,80 +813,147 @@ sudo tail -20 /var/log/apache2/keystone.log
 
 ---
 
-## 📝 Step 3-2: Keystoneの初期化（Bootstrap）
+## 📝 Step 3-2: Keystoneの動作確認と設定
 
-このStepでは、`keystone-manage bootstrap`コマンドを使用して、Keystoneの初期設定を自動的に行います。このコマンドは、adminユーザー、adminプロジェクト、adminロール、およびサービスカタログを自動的に作成します。
+> **⚠️ 重要**: OpenStack CLIコマンド（`openstack`）を実行するには、認証情報を環境変数として設定する必要があります。以下の手順で環境変数ファイルを作成してから、リソースの確認を行ってください。
 
-### Keystone Bootstrapの実行
+### 環境変数ファイル（admin-openrc）の作成
 
-**コントローラホスト名の設定**:
+OpenStackコマンドを実行する際に認証情報を毎回入力するのは非効率です。環境変数ファイルを作成して、認証情報を自動的に読み込むようにします。
 
-```bash
-export controller=controller
-```
-
-または、ホスト名が異なる場合は適宜変更してください。
-
-**Keystone Bootstrapの実行**:
+**admin-openrcファイルの作成**:
 
 ```bash
-sudo keystone-manage bootstrap --bootstrap-password ADMIN_PASS \
-  --bootstrap-admin-url https://$controller:5000/v3/ \
-  --bootstrap-internal-url https://$controller:5000/v3/ \
-  --bootstrap-public-url https://$controller:5000/v3/ \
-  --bootstrap-region-id RegionOne
+vim ~/admin-openrc
 ```
 
-> **📌 注意**: Server Worldの手順ではHTTPSを使用しています。SSL/TLS証明書を設定した場合は、必ずHTTPSを使用してください。
+**以下の内容を追加**（パスワードは実際に設定した値に置き換えてください）:
 
-**パラメータの説明**:
-
-- `--bootstrap-password ADMIN_PASS`: adminユーザーのパスワードを設定します（`ADMIN_PASS`は任意の強力なパスワードに置き換えてください）
-- `--bootstrap-admin-url`: 管理者用のKeystone APIエンドポイントURL
-- `--bootstrap-internal-url`: 内部ネットワーク用のKeystone APIエンドポイントURL
-- `--bootstrap-public-url`: 公開用のKeystone APIエンドポイントURL
-- `--bootstrap-region-id`: リージョンID（通常は`RegionOne`）
-
-**期待される出力**:
+**正規のSSL証明書を使用している場合**:
 
 ```bash
-Created domain: default
-Created domain: enabled
-Created domain: disabled
-Created project: admin
-Created project: service
-Created user: admin
-Created role: admin
-Created role: member
-Created role: reader
-Created role: service
-Created role: _member_
-Created user_role on admin: admin
-Created user_role on admin: admin
-Created endpoint: identity
-Created endpoint: identity
-Created endpoint: identity
-Created service: keystone
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
+export OS_PROJECT_NAME=admin
+export OS_USERNAME=admin
+export OS_PASSWORD=adminpassword
+export OS_AUTH_URL=https://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\W\[\033[00m\] \[\033[01;33m\](keystone)\[\033[00m\] $ '
 ```
 
-> **📌 コマンド解説**: `keystone-manage bootstrap`
+**自己署名証明書を使用している場合**（学習環境）:
+
+自己署名証明書を使用している場合、以下のいずれかの方法でSSL証明書の検証を設定する必要があります。
+
+**方法1: 証明書ファイルを指定する（推奨）**:
+
+```bash
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
+export OS_PROJECT_NAME=admin
+export OS_USERNAME=admin
+export OS_PASSWORD=adminpassword
+export OS_AUTH_URL=https://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+export OS_CACERT=/etc/ssl/certs/keystone/keystone-cert.pem
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\W\[\033[00m\] \[\033[01;33m\](keystone)\[\033[00m\] $ '
+```
+
+**方法2: 証明書検証を無効化する（開発環境のみ）**:
+
+> **⚠️ 警告**: この方法は開発・学習環境でのみ使用してください。本番環境では絶対に使用しないでください。
+
+```bash
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
+export OS_PROJECT_NAME=admin
+export OS_USERNAME=admin
+export OS_PASSWORD=ADMIN_PASS
+export OS_AUTH_URL=https://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+export OS_INSECURE=true
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\W\[\033[00m\] \[\033[01;33m\](keystone)\[\033[00m\] $ '
+```
+
+**方法3: openstackコマンドに`--insecure` オプションを付ける**:
+
+```bash
+openstack project list --insecure
+```
+
+> **📌 注意**:
 >
-> - **目的**: Keystoneの初期設定を自動的に行います。OpenStackの標準的な初期化方法です
-> - **作成されるリソース**:
->   - `default`ドメイン
->   - `admin`プロジェクト
->   - `service`プロジェクト
->   - `admin`ユーザー
->   - `admin`ロール
->   - `member`ロール
->   - `reader`ロール
->   - `service`ロール
->   - adminユーザーへのadminロールの割り当て
->   - Keystoneサービスのエンドポイント
-> - **利点**: 手動で各リソースを作成する必要がなく、標準的な初期構成が確立されます
-> - **注意**: このコマンドは初回実行時のみ使用します。既にKeystoneが初期化されている場合は実行しないでください
+> - SSL/TLS証明書を設定した場合は、必ずHTTPSを使用してください
+> - 自己署名証明書を使用している場合、上記のいずれかの方法で証明書検証を設定する必要があります
+> - `OS_INSECURE=true`は開発・学習環境でのみ使用し、本番環境では絶対に使用しないでください
+> - 証明書ファイルのパス（`OS_CACERT`）は、実際に作成した証明書のパスに合わせて調整してください
+
+**ファイルの権限設定**（セキュリティのため）:
+
+```bash
+chmod 600 ~/admin-openrc
+```
+
+**環境変数の読み込み確認**:
+
+```bash
+source ~/admin-openrc
+```
+
+**認証情報の確認**:
+
+```bash
+echo $OS_USERNAME
+echo $OS_PROJECT_NAME
+```
+
+設定した値が表示されることを確認します。
+
+> **📌 参考**:
+>
+> - プロジェクトの概念については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
+> - プロジェクトの設計方法については [Part 4 - プロジェクト・マルチテナント設計](04_system_design.md#3-プロジェクトマルチテナント設計) を参照してください。
+
+### `service`プロジェクトの作成（必須）
+
+> **⚠️ 重要**: `keystone-manage bootstrap`コマンドは`service`プロジェクトを**自動作成しません**。公式ドキュメントによると、`bootstrap`コマンドは`admin`プロジェクト、`admin`ユーザー、各種ロールのみを作成します。`service`プロジェクトは手動作成が必要です。
+
+> **📌 参考**: `service`プロジェクトの役割については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
+
+**`service`プロジェクトの作成**:
+
+```bash
+openstack project create --domain default --description "Service Project" service
+```
+
+> **📌 注意**:
+>
+> - `service`プロジェクトは、OpenStackの各サービスが慣習的に使用するプロジェクトです
+> - このプロジェクトがないと、Glance、Nova、Neutron、Cinderなどのサービスが正常に動作しません（各サービスは`service`プロジェクトに属するユーザーとして認証するため）
+> - 技術的には別の名前のプロジェクトでも動作しますが、OpenStackの標準的な手順に従うため、`service`という名前を使用することを推奨します
+> - 削除や名前変更は行わないでください
+> - 既に存在する場合は「既に存在する」というエラーが表示されますが、これは正常です
+
+**作成されたプロジェクトの確認**:
+
+```bash
+openstack project list
+```
+
+`admin`と`service`プロジェクトが表示されることを確認します。
+
+> **📌 参考**:
+>
+> - [Server World - Keystone設定 #2](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)では、bootstrap後に明示的に`service`プロジェクトを作成しています
+> - [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)でも、`service`プロジェクトは手動作成が必要とされています
 
 ### 作成されたリソースの確認
+
+環境変数を設定した後、以下のコマンドでKeystoneに作成されたリソースを確認します。
 
 **プロジェクト一覧の確認**:
 
@@ -843,52 +987,6 @@ openstack endpoint list
 
 Keystoneサービスのエンドポイント（admin、internal、public）が表示されることを確認します。
 
-### 環境変数ファイル（admin-openrc）の作成
-
-今後、OpenStackコマンドを実行する際に認証情報を毎回入力するのは非効率です。環境変数ファイルを作成して、認証情報を自動的に読み込むようにします。
-
-**admin-openrcファイルの作成**:
-
-```bash
-vim ~/admin-openrc
-```
-
-**以下の内容を追加**（パスワードは実際に設定した値に置き換えてください）:
-
-```bash
-export OS_PROJECT_DOMAIN_NAME=default
-export OS_USER_DOMAIN_NAME=default
-export OS_PROJECT_NAME=admin
-export OS_USERNAME=admin
-export OS_PASSWORD=ADMIN_PASS
-export OS_AUTH_URL=https://controller:5000/v3
-export OS_IDENTITY_API_VERSION=3
-export OS_IMAGE_API_VERSION=2
-```
-
-> **📌 注意**: Server Worldの手順ではHTTPSを使用しています。SSL/TLS証明書を設定した場合は、必ずHTTPSを使用してください。自己署名証明書を使用している場合、環境変数`OS_CACERT`を設定するか、OpenStack CLIの設定で証明書検証を無効化する必要がある場合があります。
-
-**ファイルの権限設定**（セキュリティのため）:
-
-```bash
-chmod 600 ~/admin-openrc
-```
-
-**環境変数の読み込み確認**:
-
-```bash
-source ~/admin-openrc
-```
-
-**認証情報の確認**:
-
-```bash
-echo $OS_USERNAME
-echo $OS_PROJECT_NAME
-```
-
-設定した値が表示されることを確認します。
-
 ### 動作確認
 
 **トークンの発行と確認**:
@@ -911,38 +1009,6 @@ openstack token issue
 ```
 
 トークンが正常に発行されることを確認します。
-
-**プロジェクト一覧の確認**:
-
-```bash
-openstack project list
-```
-
-adminとserviceプロジェクトが表示されることを確認します。
-
-**ユーザー一覧の確認**:
-
-```bash
-openstack user list
-```
-
-adminユーザーが表示されることを確認します。
-
-**ロール一覧の確認**:
-
-```bash
-openstack role list
-```
-
-adminロールが表示されることを確認します。
-
-**エンドポイントの確認**:
-
-```bash
-openstack endpoint list
-```
-
-Keystoneサービスのエンドポイント（admin、internal、public）が表示されることを確認します。
 
 ---
 
@@ -1097,7 +1163,73 @@ curl http://controller:5000/v3/
 
    詳細な接続情報が表示されます。
 
-### 問題4: トークン発行エラー
+### 問題4: OpenStack CLIコマンドで「Missing value auth-url required for auth plugin password」エラー
+
+**症状**:
+
+```bash
+openstack project list
+# Missing value auth-url required for auth plugin password
+openstack user list
+# Missing value auth-url required for auth plugin password
+```
+
+**原因**:
+
+- 認証情報を環境変数として設定していない
+- `OS_AUTH_URL`環境変数が設定されていない
+- `admin-openrc`ファイルを読み込んでいない
+
+**解決策**:
+
+1. `admin-openrc`ファイルが存在するか確認:
+
+   ```bash
+   ls -l ~/admin-openrc
+   ```
+
+2. ファイルが存在しない場合は作成（[環境変数ファイルの作成](#環境変数ファイルadmin-openrcの作成)を参照）:
+
+   ```bash
+   vim ~/admin-openrc
+   ```
+
+   以下の内容を追加（パスワードは実際の値に置き換えてください）:
+
+   ```bash
+   export OS_PROJECT_DOMAIN_NAME=default
+   export OS_USER_DOMAIN_NAME=default
+   export OS_PROJECT_NAME=admin
+   export OS_USERNAME=admin
+   export OS_PASSWORD=ADMIN_PASS
+   export OS_AUTH_URL=https://controller:5000/v3
+   export OS_IDENTITY_API_VERSION=3
+   export OS_IMAGE_API_VERSION=2
+   ```
+
+3. 環境変数ファイルを読み込む:
+
+   ```bash
+   source ~/admin-openrc
+   ```
+
+4. 環境変数が正しく設定されているか確認:
+
+   ```bash
+   env | grep OS_
+   ```
+
+   `OS_AUTH_URL`、`OS_USERNAME`、`OS_PASSWORD`などが表示されることを確認します。
+
+5. 再度コマンドを実行:
+
+   ```bash
+   openstack project list
+   ```
+
+> **📌 注意**: 新しいシェルセッションを開始するたびに、`source ~/admin-openrc`を実行する必要があります。または、`~/.bashrc`に`source ~/admin-openrc`を追加することで、自動的に読み込まれるようにできます。
+
+### 問題5: トークン発行エラー
 
 **症状**:
 
@@ -1122,7 +1254,7 @@ openstack token issue
 
 3. パスワードが正しいか確認（再度ユーザーを作成するか、パスワードをリセット）
 
-### 問題5: データベース同期エラー
+### 問題6: データベース同期エラー
 
 **症状**:
 
@@ -1153,7 +1285,7 @@ sudo keystone-manage db_sync
    sudo keystone-manage db_sync
    ```
 
-### 問題6: WSGIファイルが見つからない
+### 問題7: WSGIファイルが見つからない
 
 **症状**:
 
@@ -1216,7 +1348,7 @@ YYYY/MM/DD
 
 ### 完了したStep
 - [x] Step 3-1: Keystoneのインストール
-- [x] Step 3-2: プロジェクト・ユーザー・ロールの作成
+- [x] Step 3-2: Keystoneの動作確認と設定
 
 ### 使用した方法
 - [x] Command

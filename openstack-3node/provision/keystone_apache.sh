@@ -27,20 +27,23 @@ else
     echo "[keystone-apache] 自己署名証明書を作成中..."
     mkdir -p /etc/ssl/certs/keystone
     mkdir -p /etc/ssl/private/keystone
-    
+
     if [ ! -f /etc/ssl/certs/keystone/keystone-cert.pem ] || [ ! -f /etc/ssl/private/keystone/keystone-key.pem ]; then
+        # SAN（Subject Alternative Names）を含む証明書を作成
+        # これにより、ホスト名検証エラー（Hostname mismatch）を回避
         openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
           -keyout /etc/ssl/private/keystone/keystone-key.pem \
           -out /etc/ssl/certs/keystone/keystone-cert.pem \
-          -subj "/C=JP/ST=State/L=City/O=Organization/CN=controller" 2>/dev/null || true
-        
+          -subj "/C=JP/ST=State/L=City/O=Organization/CN=controller" \
+          -addext "subjectAltName=DNS:controller,DNS:localhost,IP:172.16.100.10,IP:127.0.0.1" 2>/dev/null || true
+
         chmod 600 /etc/ssl/private/keystone/keystone-key.pem
         chmod 644 /etc/ssl/certs/keystone/keystone-cert.pem
-        echo "[keystone-apache] 自己署名証明書を作成しました"
+        echo "[keystone-apache] 自己署名証明書を作成しました（SANを含む）"
     else
         echo "[keystone-apache] 自己署名証明書は既に存在します"
     fi
-    
+
     SSL_CERT_FILE="/etc/ssl/certs/keystone/keystone-cert.pem"
     SSL_KEY_FILE="/etc/ssl/private/keystone/keystone-key.pem"
 fi

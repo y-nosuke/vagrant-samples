@@ -687,14 +687,16 @@ Vagrantfileは以下の設計思想で作成されています：
 - Apache HTTP Serverの設定
 - サービスの起動
 
-**Step 3-2: プロジェクト・ユーザー・ロールの作成** ⭐⭐⭐
+**Step 3-2: Keystoneの動作確認と設定** ⭐⭐⭐
 
-- adminプロジェクトの作成
-- adminユーザーの作成
-- adminロールの作成
-- サービスプロジェクトの作成
 - 環境変数ファイル（admin-openrc）の作成
+- `service`プロジェクトの作成（必須）
+  - `keystone-manage bootstrap`は`service`プロジェクトを自動作成しません
+  - 公式ドキュメントに基づき、手動作成が必要です
+- 作成されたリソースの確認（プロジェクト、ユーザー、ロール、エンドポイント）
 - 動作確認（openstack token issue）
+
+> **📌 注意**: `keystone-manage bootstrap`コマンドは、`admin`プロジェクト、`admin`ユーザー、各種ロールを自動的に作成しますが、`service`プロジェクトは自動作成されません。`service`プロジェクトは手動作成が必要です。詳細は[OpenStack公式ドキュメント](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)を参照してください。
 
 **学習ポイント**:
 
