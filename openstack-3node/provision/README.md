@@ -34,6 +34,26 @@
 - `glance_service.sh` - Glanceサービスの起動（Nginx経由）
 - `glance_upload_image.sh` - テストイメージのアップロード（オプション）
 
+### Nova構築
+
+#### コントローラノード専用
+
+- `nova_db.sh` - Novaデータベースの作成（nova_api、nova、nova_cell0、placement）
+- `nova_install.sh` - Novaパッケージのインストールとサービス登録
+- `placement_config.sh` - Placement設定ファイルの編集とDB同期
+- `placement_apache.sh` - Placement Apache設定
+- `nova_config.sh` - Nova設定ファイルの編集とDB同期、Cell設定
+- `nova_nginx.sh` - Nginx設定（Nova API、Nova Metadata API、novncproxy用）
+- `placement_service.sh` - Placementサービスの起動
+- `nova_service.sh` - Novaサービスの起動（コントローラ側）
+- `nova_flavor.sh` - 標準Flavorの作成
+
+#### コンピュートノード専用
+
+- `nova_compute_install.sh` - Nova Computeパッケージのインストール
+- `nova_compute_config.sh` - Nova Compute設定ファイルの編集
+- `nova_compute_service.sh` - Nova Computeサービスの起動
+
 ## 🚀 使用方法
 
 ### Vagrantfileでのプロビジョニング
@@ -57,6 +77,18 @@ controller.vm.provision "glance-install", type: "shell", path: "provision/glance
 controller.vm.provision "glance-config", type: "shell", path: "provision/glance_config.sh"
 controller.vm.provision "glance-service", type: "shell", path: "provision/glance_service.sh"
 # controller.vm.provision "glance-upload-image", type: "shell", path: "provision/glance_upload_image.sh", privileged: false  # オプション
+
+# Nova構築（コントローラノード専用）
+controller.vm.provision "nova-db", type: "shell", path: "provision/nova_db.sh"
+controller.vm.provision "nova-install", type: "shell", path: "provision/nova_install.sh"
+controller.vm.provision "nova-config", type: "shell", path: "provision/nova_config.sh"
+controller.vm.provision "nova-service", type: "shell", path: "provision/nova_service.sh"
+controller.vm.provision "nova-flavor", type: "shell", path: "provision/nova_flavor.sh", privileged: false
+
+# Nova構築（コンピュートノード専用）
+compute.vm.provision "nova-compute-install", type: "shell", path: "provision/nova_compute_install.sh"
+compute.vm.provision "nova-compute-config", type: "shell", path: "provision/nova_compute_config.sh"
+compute.vm.provision "nova-compute-service", type: "shell", path: "provision/nova_compute_service.sh"
 ```
 
 ### 実行方法
@@ -134,6 +166,22 @@ controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_ma
    - glance-service
    - glance-upload-image（オプション）
 
+5. **Nova構築**（controller + compute1）
+   - **コントローラ側**（controller）:
+     - nova-db
+     - nova-install
+     - placement-config
+     - placement-apache
+     - nova-config
+     - nova-nginx
+     - placement-service
+     - nova-service
+     - nova-flavor
+   - **コンピュート側**（compute1）:
+     - nova-compute-install
+     - nova-compute-config
+     - nova-compute-service
+
 ## ✅ 冪等性
 
 各スクリプトは冪等性を持っています。つまり、何度実行しても同じ結果になります。
@@ -149,6 +197,9 @@ controller.vm.provision "mariadb", type: "shell", path: "provision/foundation_ma
 - Admin User: `admin123`
 - Glance DB: `password123`
 - Glance User: `password123`
+- Nova DB: `password123`
+- Nova User: `password123`
+- Placement User: `password123`（Nova設定で使用）
 
 **本番環境では必ず強力なパスワードに変更してください。**
 
@@ -208,6 +259,21 @@ Glanceの設定は完了していて、追加のイメージをアップロー�
 vagrant provision controller --provision-with glance-upload-image
 ```
 
+### 例6: Phase 5（Nova）だけ実行
+
+Phase 4まで完了していて、Phase 5（Nova）だけやり直したい場合：
+
+```bash
+# VagrantfileでPhase 5以外をコメントアウト
+# その後、Nova関連のプロビジョニングのみ実行
+
+# コントローラ側
+vagrant provision controller --provision-with nova-db,nova-install,placement-config,placement-apache,nova-config,nova-nginx,placement-service,nova-service,nova-flavor
+
+# コンピュート側
+vagrant provision compute1 --provision-with nova-compute-install,nova-compute-config,nova-compute-service
+```
+
 ## ⚠️ トラブルシューティング
 
 ### プロビジョニングが実行されない
@@ -259,4 +325,22 @@ openstack image list
 sudo systemctl status glance-api
 ```
 
-Phase 5以降のプロビジョニングスクリプトは、必要に応じて追加予定です。
+Phase 5が完了したら、以下のコマンドで動作確認を行ってください：
+
+```bash
+# コントローラノード
+vagrant ssh controller
+source ~/admin-openrc
+openstack service list | grep compute
+openstack endpoint list --service compute
+openstack compute service list
+openstack hypervisor list
+openstack flavor list
+sudo systemctl status nova-api nova-conductor nova-scheduler nova-novncproxy
+
+# コンピュートノード
+vagrant ssh compute1
+sudo systemctl status nova-compute
+```
+
+Phase 6以降のプロビジョニングスクリプトは、必要に応じて追加予定です。

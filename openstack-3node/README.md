@@ -56,9 +56,9 @@ openstack-3node/
 └── docs/                    # ドキュメント
     ├── phase1_environment_setup.md
     ├── phase2_foundation.md
-    ├── phase3_core_services.md
-    ├── phase4_first_vm.md
-    ├── phase5_exercises.md
+    ├── phase3_keystone.md
+    ├── phase4_glance.md
+    ├── phase5_nova.md
     └── (その他のドキュメント)
 ```
 

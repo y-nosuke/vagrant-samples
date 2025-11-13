@@ -82,6 +82,13 @@ Vagrant.configure("2") do |config|
     # controller.vm.provision "glance-config", type: "shell", path: "provision/glance_config.sh"
     # controller.vm.provision "glance-service", type: "shell", path: "provision/glance_service.sh"
     # controller.vm.provision "glance-upload-image", type: "shell", path: "provision/glance_upload_image.sh", privileged: false
+
+    # Nova構築（コントローラノード専用）
+    # controller.vm.provision "nova-db", type: "shell", path: "provision/nova_db.sh"
+    # controller.vm.provision "nova-install", type: "shell", path: "provision/nova_install.sh"
+    # controller.vm.provision "nova-config", type: "shell", path: "provision/nova_config.sh"
+    # controller.vm.provision "nova-service", type: "shell", path: "provision/nova_service.sh"
+    # controller.vm.provision "nova-flavor", type: "shell", path: "provision/nova_flavor.sh", privileged: false
   end
 
   #=============================================================================
@@ -153,6 +160,11 @@ Vagrant.configure("2") do |config|
     compute.vm.provision "hosts", type: "shell", path: "provision/common_hosts.sh"
     compute.vm.provision "ntp", type: "shell", path: "provision/common_ntp.sh"
     compute.vm.provision "repository", type: "shell", path: "provision/common_repository.sh"
+
+    # Nova構築（コンピュートノード専用）
+    # compute.vm.provision "nova-compute-install", type: "shell", path: "provision/nova_compute_install.sh"
+    # compute.vm.provision "nova-compute-config", type: "shell", path: "provision/nova_compute_config.sh"
+    # compute.vm.provision "nova-compute-service", type: "shell", path: "provision/nova_compute_service.sh"
   end
 
   #=============================================================================
