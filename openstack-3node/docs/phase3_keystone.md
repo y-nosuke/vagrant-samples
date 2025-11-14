@@ -36,13 +36,9 @@
     - [動作確認](#動作確認)
   - [✅ Phase 3 完了チェックリスト](#-phase-3-完了チェックリスト)
   - [⚠️ トラブルシューティング](#️-トラブルシューティング)
-    - [問題1: データベース接続エラー](#問題1-データベース接続エラー)
-    - [問題2: Apacheサービスが起動しない](#問題2-apacheサービスが起動しない)
+    - [問題1: Apacheサービスが起動しない](#問題1-apacheサービスが起動しない)
     - [問題3: Keystone APIが応答しない](#問題3-keystone-apiが応答しない)
-    - [問題4: OpenStack CLIコマンドで「Missing value auth-url required for auth plugin password」エラー](#問題4-openstack-cliコマンドでmissing-value-auth-url-required-for-auth-plugin-passwordエラー)
-    - [問題5: トークン発行エラー](#問題5-トークン発行エラー)
-    - [問題6: データベース同期エラー](#問題6-データベース同期エラー)
-    - [問題7: WSGIファイルが見つからない](#問題7-wsgiファイルが見つからない)
+    - [問題2: WSGIファイルが見つからない](#問題2-wsgiファイルが見つからない)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
   - [🔗 関連ドキュメント](#-関連ドキュメント)
@@ -1039,31 +1035,9 @@ openstack token issue
 
 ## ⚠️ トラブルシューティング
 
-### 問題1: データベース接続エラー
+> **📌 注意**: データベース接続エラー、認証エラー、トークンエラー、データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
 
-**症状**:
-
-```bash
-ERROR: (pymysql.err.OperationalError) (2003, "Can't connect to MySQL server")
-```
-
-**解決策**:
-
-1. MariaDBサービスが起動していることを確認:
-
-   ```bash
-   sudo systemctl status mariadb
-   ```
-
-2. データベース接続設定を確認:
-
-   ```bash
-   sudo grep connection /etc/keystone/keystone.conf
-   ```
-
-3. パスワードが正しいか確認（MariaDBに直接接続してテスト）
-
-### 問題2: Apacheサービスが起動しない
+### 問題1: Apacheサービスが起動しない
 
 **症状**:
 
@@ -1163,129 +1137,7 @@ curl http://controller:5000/v3/
 
    詳細な接続情報が表示されます。
 
-### 問題4: OpenStack CLIコマンドで「Missing value auth-url required for auth plugin password」エラー
-
-**症状**:
-
-```bash
-openstack project list
-# Missing value auth-url required for auth plugin password
-openstack user list
-# Missing value auth-url required for auth plugin password
-```
-
-**原因**:
-
-- 認証情報を環境変数として設定していない
-- `OS_AUTH_URL`環境変数が設定されていない
-- `admin-openrc`ファイルを読み込んでいない
-
-**解決策**:
-
-1. `admin-openrc`ファイルが存在するか確認:
-
-   ```bash
-   ls -l ~/admin-openrc
-   ```
-
-2. ファイルが存在しない場合は作成（[環境変数ファイルの作成](#環境変数ファイルadmin-openrcの作成)を参照）:
-
-   ```bash
-   vim ~/admin-openrc
-   ```
-
-   以下の内容を追加（パスワードは実際の値に置き換えてください）:
-
-   ```bash
-   export OS_PROJECT_DOMAIN_NAME=default
-   export OS_USER_DOMAIN_NAME=default
-   export OS_PROJECT_NAME=admin
-   export OS_USERNAME=admin
-   export OS_PASSWORD=ADMIN_PASS
-   export OS_AUTH_URL=https://controller:5000/v3
-   export OS_IDENTITY_API_VERSION=3
-   export OS_IMAGE_API_VERSION=2
-   ```
-
-3. 環境変数ファイルを読み込む:
-
-   ```bash
-   source ~/admin-openrc
-   ```
-
-4. 環境変数が正しく設定されているか確認:
-
-   ```bash
-   env | grep OS_
-   ```
-
-   `OS_AUTH_URL`、`OS_USERNAME`、`OS_PASSWORD`などが表示されることを確認します。
-
-5. 再度コマンドを実行:
-
-   ```bash
-   openstack project list
-   ```
-
-> **📌 注意**: 新しいシェルセッションを開始するたびに、`source ~/admin-openrc`を実行する必要があります。または、`~/.bashrc`に`source ~/admin-openrc`を追加することで、自動的に読み込まれるようにできます。
-
-### 問題5: トークン発行エラー
-
-**症状**:
-
-```bash
-openstack token issue
-# ERROR: The request you have made requires authentication.
-```
-
-**解決策**:
-
-1. 環境変数が正しく設定されているか確認:
-
-   ```bash
-   env | grep OS_
-   ```
-
-2. `admin-openrc` ファイルを再読み込み:
-
-   ```bash
-   source ~/admin-openrc
-   ```
-
-3. パスワードが正しいか確認（再度ユーザーを作成するか、パスワードをリセット）
-
-### 問題6: データベース同期エラー
-
-**症状**:
-
-```bash
-sudo keystone-manage db_sync
-# ERROR: ...
-```
-
-**解決策**:
-
-1. データベースが作成されているか確認:
-
-   ```bash
-   sudo mysql -u root -p -e "SHOW DATABASES LIKE 'keystone';"
-   ```
-
-2. データベースユーザーに権限があるか確認:
-
-   ```bash
-   sudo mysql -u root -p -e "SHOW GRANTS FOR 'keystone'@'localhost';"
-   ```
-
-3. 既存のスキーマを削除して再同期（注意: データが削除されます）:
-
-   ```bash
-   sudo mysql -u root -p keystone -e "DROP DATABASE keystone;"
-   sudo mysql -u root -p -e "CREATE DATABASE keystone CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-   sudo keystone-manage db_sync
-   ```
-
-### 問題7: WSGIファイルが見つからない
+### 問題2: WSGIファイルが見つからない
 
 **症状**:
 
@@ -1315,6 +1167,10 @@ sudo apache2ctl configtest
    ```bash
    sudo chmod +x /usr/bin/keystone-wsgi-public
    ```
+
+---
+
+**その他の問題**: データベース接続エラー、認証エラー、トークンエラー、データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
 
 ---
 

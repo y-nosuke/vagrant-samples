@@ -28,8 +28,7 @@
   - [⚠️ トラブルシューティング](#️-トラブルシューティング)
     - [問題1: Glance APIに接続できない（Nginx設定の問題）](#問題1-glance-apiに接続できないnginx設定の問題)
     - [問題2: イメージのアップロードが失敗する](#問題2-イメージのアップロードが失敗する)
-    - [問題3: `openstack image list` でエラーが出る](#問題3-openstack-image-list-でエラーが出る)
-    - [問題4: エンドポイントが見つからない](#問題4-エンドポイントが見つからない)
+    - [問題3: エンドポイントが見つからない](#問題3-エンドポイントが見つからない)
     - [問題5: イメージのダウンロードが遅い](#問題5-イメージのダウンロードが遅い)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
@@ -824,6 +823,8 @@ sudo ls -lh /var/lib/glance/images/
 
 ## ⚠️ トラブルシューティング
 
+> **📌 注意**: 認証エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
+
 ### 問題1: Glance APIに接続できない（Nginx設定の問題）
 
 **症状**:
@@ -930,38 +931,7 @@ openstack image create ...
 
 ---
 
-### 問題3: `openstack image list` でエラーが出る
-
-**症状**:
-
-```bash
-openstack image list
-# The request you have made requires authentication. (HTTP 401)
-```
-
-**解決策**:
-
-1. 環境変数を確認:
-
-   ```bash
-   env | grep OS_
-   ```
-
-2. admin-openrcを再読み込み:
-
-   ```bash
-   source ~/admin-openrc
-   ```
-
-3. トークンを再取得:
-
-   ```bash
-   openstack token issue
-   ```
-
----
-
-### 問題4: エンドポイントが見つからない
+### 問題3: エンドポイントが見つからない
 
 **症状**:
 
@@ -1005,6 +975,10 @@ openstack image list
    ```bash
    wget https://download.cirros-cloud.net/0.6.2/cirros-0.6.2-x86_64-disk.img
    ```
+
+---
+
+**その他の問題**: 認証エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
 
 ---
 

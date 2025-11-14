@@ -787,6 +787,7 @@ bash scripts/check_environment.sh
 
 ```powershell
 # Windows（管理者権限が必要）
+$env:BRIDGE_INTERFACE="Intel(R) Wi-Fi 6E AX211 160MHz"
 pwsh -ExecutionPolicy Bypass -File .\scripts\setup_environment.ps1
 
 # macOS/Linux

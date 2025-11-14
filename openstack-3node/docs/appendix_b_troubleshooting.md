@@ -665,12 +665,14 @@ telnet controller 5672
 
 - `HTTP 401 Unauthorized`
 - `The request you have made requires authentication`
+- `Missing value auth-url required for auth plugin password`
 
 **原因**:
 
 - 環境変数が設定されていない
 - 認証情報が間違っている
 - Keystoneサービスが起動していない
+- `admin-openrc`ファイルを読み込んでいない
 
 **解決方法**:
 
@@ -678,28 +680,127 @@ telnet controller 5672
 # 1. 環境変数の確認
 env | grep OS_
 
-# 2. 認証情報を再読込
+# 2. admin-openrcファイルが存在するか確認
+ls -l ~/admin-openrc
+
+# 3. ファイルが存在しない場合は作成
+vim ~/admin-openrc
+```
+
+以下の内容を追加（パスワードは実際の値に置き換えてください）:
+
+```bash
+export OS_PROJECT_DOMAIN_NAME=default
+export OS_USER_DOMAIN_NAME=default
+export OS_PROJECT_NAME=admin
+export OS_USERNAME=admin
+export OS_PASSWORD=ADMIN_PASS
+export OS_AUTH_URL=https://controller:5000/v3
+export OS_IDENTITY_API_VERSION=3
+export OS_IMAGE_API_VERSION=2
+```
+
+自己署名証明書を使用している場合:
+
+```bash
+export OS_CACERT=/etc/ssl/certs/keystone/keystone-cert.pem
+# または（開発環境のみ）
+export OS_INSECURE=true
+```
+
+```bash
+# 4. 認証情報を再読込
 source ~/admin-openrc
 
-# admin-openrcの内容例:
-# export OS_PROJECT_DOMAIN_NAME=Default
-# export OS_USER_DOMAIN_NAME=Default
-# export OS_PROJECT_NAME=admin
-# export OS_USERNAME=admin
-# export OS_PASSWORD=ADMIN_PASS
-# export OS_AUTH_URL=http://controller:5000/v3
-# export OS_IDENTITY_API_VERSION=3
-# export OS_IMAGE_API_VERSION=2
+# 5. 環境変数が正しく設定されているか確認
+env | grep OS_
 
-# 3. Keystoneサービスの確認
-sudo systemctl status openstack-keystone
+# 6. Keystoneサービスの確認
+sudo systemctl status apache2  # KeystoneはApacheで動作
 
-# 4. 手動で認証テスト
+# 7. 手動で認証テスト
 openstack token issue
 
-# 5. エンドポイントの確認
+# 8. エンドポイントの確認
 openstack catalog list
 ```
+
+> **📌 注意**: 新しいシェルセッションを開始するたびに、`source ~/admin-openrc`を実行する必要があります。または、`~/.bashrc`に`source ~/admin-openrc`を追加することで、自動的に読み込まれるようにできます。
+
+### 問題4-1: トークン発行エラー
+
+**症状**:
+
+```bash
+openstack token issue
+# ERROR: The request you have made requires authentication.
+```
+
+**解決方法**:
+
+1. 環境変数が正しく設定されているか確認:
+
+   ```bash
+   env | grep OS_
+   ```
+
+2. `admin-openrc`ファイルを再読み込み:
+
+   ```bash
+   source ~/admin-openrc
+   ```
+
+3. パスワードが正しいか確認（再度ユーザーを作成するか、パスワードをリセット）
+
+4. Keystoneサービスが正常に動作しているか確認:
+
+   ```bash
+   curl -k https://controller:5000/v3/ | python3 -m json.tool
+   ```
+
+### 問題4-2: データベース同期エラー
+
+**症状**:
+
+```bash
+sudo keystone-manage db_sync
+# または
+sudo nova-manage api_db sync
+# ERROR: ...
+```
+
+**解決方法**:
+
+1. データベースが作成されているか確認:
+
+   ```bash
+   sudo mysql -u root -p -e "SHOW DATABASES LIKE '<service>';"
+   # 例: SHOW DATABASES LIKE 'keystone';
+   # 例: SHOW DATABASES LIKE 'nova%';
+   ```
+
+2. データベースユーザーに権限があるか確認:
+
+   ```bash
+   sudo mysql -u root -p -e "SHOW GRANTS FOR '<user>'@'localhost';"
+   # 例: SHOW GRANTS FOR 'keystone'@'localhost';
+   ```
+
+3. データベース接続をテスト:
+
+   ```bash
+   mysql -u <user> -p<PASSWORD> -h controller <database> -e "SELECT 1;"
+   ```
+
+4. 既存のスキーマを削除して再同期（注意: データが削除されます）:
+
+   ```bash
+   sudo mysql -u root -p <database> -e "DROP DATABASE <database>;"
+   sudo mysql -u root -p -e "CREATE DATABASE <database> CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+   sudo <service>-manage db_sync
+   # 例: sudo keystone-manage db_sync
+   # 例: sudo nova-manage api_db sync
+   ```
 
 ---
 

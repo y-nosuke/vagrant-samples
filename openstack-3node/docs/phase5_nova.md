@@ -36,7 +36,6 @@
     - [問題2: nova-conductorがPlacementサービスに接続できない](#問題2-nova-conductorがplacementサービスに接続できない)
     - [問題3: コンピュートノードが登録されない](#問題3-コンピュートノードが登録されない)
     - [問題4: KVMが有効になっていない](#問題4-kvmが有効になっていない)
-    - [問題4: データベース同期エラー](#問題4-データベース同期エラー)
     - [問題5: Cellの登録エラー](#問題5-cellの登録エラー)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
@@ -1492,6 +1491,8 @@ sudo ss -tlnp | grep -E "(8774|8778|6080)"
 
 ## ⚠️ トラブルシューティング
 
+> **📌 注意**: データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
+
 ### 問題1: Nova APIに接続できない（502 Bad Gateway）
 
 **症状**:
@@ -1818,46 +1819,6 @@ lsmod | grep kvm
 
 ---
 
-### 問題4: データベース同期エラー
-
-**症状**:
-
-```bash
-sudo nova-manage api_db sync
-# ERROR: ...
-```
-
-**解決策**:
-
-1. データベースが作成されているか確認:
-
-   ```bash
-   sudo mysql -u root -p -e "SHOW DATABASES LIKE 'nova%';"
-   ```
-
-2. データベースユーザーに権限があるか確認:
-
-   ```bash
-   sudo mysql -u root -p -e "SHOW GRANTS FOR 'nova'@'localhost';"
-   ```
-
-3. データベース接続をテスト:
-
-   ```bash
-   mysql -u nova -pNOVA_DBPASS -h controller nova_api -e "SELECT 1;"
-   ```
-
-4. 既存のスキーマを削除して再同期（注意: データが削除されます）:
-
-   ```bash
-   sudo mysql -u root -p -e "DROP DATABASE nova_api;"
-   sudo mysql -u root -p -e "DROP DATABASE nova;"
-   sudo mysql -u root -p -e "DROP DATABASE nova_cell0;"
-   # データベースを再作成してから同期
-   ```
-
----
-
 ### 問題5: Cellの登録エラー
 
 **症状**:
@@ -1893,6 +1854,10 @@ sudo nova-manage cell_v2 list_cells
    sudo mysql -u root -p nova_cell0 -e "SHOW TABLES;" | head -5
    sudo mysql -u root -p nova -e "SHOW TABLES;" | head -5
    ```
+
+---
+
+**その他の問題**: データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
 
 ---
 
