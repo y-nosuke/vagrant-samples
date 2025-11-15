@@ -196,13 +196,13 @@ sudo apt update
 sudo apt install -y keystone python3-openstackclient apache2 libapache2-mod-wsgi-py3 python3-oauth2client
 ```
 
-> **📌 パッケージの説明**:
->
-> - `keystone`: Keystone認証サービス本体
-> - `python3-openstackclient`: OpenStack CLIクライアント
-> - `apache2`: Apache HTTP Server（KeystoneはWSGIアプリケーションとして動作）
-> - `libapache2-mod-wsgi-py3`: Apache用のPython WSGIモジュール
-> - `python3-oauth2client`: OAuth2認証クライアント（Keystoneで使用）
+**📌 パッケージの説明**:
+
+- `keystone`: Keystone認証サービス本体
+- `python3-openstackclient`: OpenStack CLIクライアント
+- `apache2`: Apache HTTP Server（KeystoneはWSGIアプリケーションとして動作）
+- `libapache2-mod-wsgi-py3`: Apache用のPython WSGIモジュール
+- `python3-oauth2client`: OAuth2認証クライアント（Keystoneで使用）
 
 **インストール確認**:
 
@@ -231,8 +231,8 @@ sudo vim /etc/keystone/keystone.conf
 #### 1. memcacheセクション
 
 ```ini
-[memcache]
-servers = controller:11211
+[cache]
+memcache_servers = controller:11211
 ```
 
 #### 2. databaseセクション
@@ -251,7 +251,7 @@ provider = fernet
 
 Fernetトークンプロバイダーを使用します（推奨）。
 
-> **📌 注意**: Server Worldでは具体的なIPアドレス（例: `10.0.0.30:11211`）を指定していますが、Vagrant環境ではホスト名（`controller`）を使用します。Memcachedがローカルホストで動作している場合は`localhost:11211`でも問題ありません。
+**📌 注意**: Server Worldでは具体的なIPアドレス（例: `10.0.0.30:11211`）を指定していますが、Vagrant環境ではホスト名（`controller`）を使用します。Memcachedがローカルホストで動作している場合は`localhost:11211`でも問題ありません。
 
 Memcachedを使用してトークンをキャッシュします。
 
@@ -318,14 +318,6 @@ FernetはKeystoneが使用するトークン暗号化方式です。Fernetキー
 sudo keystone-manage fernet_setup --keystone-user keystone --keystone-group keystone
 ```
 
-**期待される出力**:
-
-```bash
-Created key repository: /etc/keystone/fernet-keys
-Created primary key: /etc/keystone/fernet-keys/0
-Created secondary key: /etc/keystone/fernet-keys/1
-```
-
 **Fernetキーの確認**:
 
 ```bash
@@ -372,55 +364,43 @@ Credentialキーファイルが作成されていることを確認します。
 
 `keystone-manage bootstrap`コマンドを使用して、Keystoneの初期設定を自動的に行います。このコマンドは、adminユーザー、adminプロジェクト、adminロール、およびサービスカタログを自動的に作成します。**注意**: `service`プロジェクトは自動作成されないため、この後の手順で手動作成する必要があります。
 
-**コントローラホスト名の設定**:
-
-コントローラホスト名を環境変数に設定します。
-
-```bash
-export controller=controller
-```
-
-> **📌 注意**: Vagrant環境では`controller`を使用します。ホスト名が異なる場合は適宜変更してください。
-
 **Keystone Bootstrapの実行**:
 
 ```bash
 sudo keystone-manage bootstrap --bootstrap-password adminpassword \
-  --bootstrap-admin-url https://$controller:5000/v3/ \
-  --bootstrap-internal-url https://$controller:5000/v3/ \
-  --bootstrap-public-url https://$controller:5000/v3/ \
+  --bootstrap-admin-url https://controller:5000/v3/ \
+  --bootstrap-internal-url https://controller:5000/v3/ \
+  --bootstrap-public-url https://controller:5000/v3/ \
   --bootstrap-region-id RegionOne
 ```
 
-> **📌 注意**:
->
-> - `adminpassword`は任意の管理者パスワードに置き換えてください
-> - この時点ではまだSSL/TLS証明書とApacheが設定されていません。bootstrapコマンド自体は証明書なしでも実行できますが、後でApacheを設定する際にHTTPSを使用するため、ここでHTTPSのURLを指定します
+> **📌 注意**: Vagrant環境では`controller`を使用します。ホスト名が異なる場合は適宜変更してください。
 
-**パラメータの説明**:
+**コマンド解説**: `keystone-manage bootstrap`
 
-- `--bootstrap-password adminpassword`: adminユーザーのパスワードを設定します（`adminpassword`は任意の強力なパスワードに置き換えてください）
-- `--bootstrap-admin-url`: 管理者用のKeystone APIエンドポイントURL
-- `--bootstrap-internal-url`: 内部ネットワーク用のKeystone APIエンドポイントURL
-- `--bootstrap-public-url`: 公開用のKeystone APIエンドポイントURL
-- `--bootstrap-region-id`: リージョンID（通常は`RegionOne`）
-
-> **📌 コマンド解説**: `keystone-manage bootstrap`
->
-> - **目的**: Keystoneの初期設定を自動的に行います。OpenStackの標準的な初期化方法です
-> - **作成されるリソース**:
->   - `default`ドメイン
->   - `admin`プロジェクト
->   - `admin`ユーザー
->   - `admin`ロール
->   - `member`ロール
->   - `reader`ロール
->   - `service`ロール
->   - adminユーザーへのadminロールの割り当て
->   - Keystoneサービスのエンドポイント
-> - **注意**: `service`プロジェクトは自動作成されません。この後の手順で手動作成する必要があります
-> - **参考**: [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)
-> - **注意**: このコマンドは初回実行時のみ使用します。既にKeystoneが初期化されている場合は実行しないでください
+- **目的**: Keystoneの初期設定を自動的に行います。OpenStackの標準的な初期化方法です
+- **パラメータの説明**:
+  - `--bootstrap-password adminpassword`: adminユーザーのパスワードを設定します（`adminpassword`は任意の強力なパスワードに置き換えてください）
+  - `--bootstrap-admin-url`: 管理者用のKeystone APIエンドポイントURL
+  - `--bootstrap-internal-url`: 内部ネットワーク用のKeystone APIエンドポイントURL
+  - `--bootstrap-public-url`: 公開用のKeystone APIエンドポイントURL
+  - `--bootstrap-region-id`: リージョンID（通常は`RegionOne`）
+- **作成されるリソース**:
+  - `default`ドメイン
+  - `admin`プロジェクト
+  - `admin`ユーザー
+  - `admin`ロール
+  - `member`ロール
+  - `reader`ロール
+  - `service`ロール
+  - adminユーザーへのadminロールの割り当て
+  - Keystoneサービスのエンドポイント
+- **注意事項**:
+  - `adminpassword`は任意の管理者パスワードに置き換えてください
+  - この時点ではまだSSL/TLS証明書とApacheが設定されていません。bootstrapコマンド自体は証明書なしでも実行できますが、後でApacheを設定する際にHTTPSを使用するため、ここでHTTPSのURLを指定します
+  - `service`プロジェクトは自動作成されません。この後の手順で手動作成する必要があります
+  - このコマンドは初回実行時のみ使用します。既にKeystoneが初期化されている場合は実行しないでください
+- **参考**: [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)
 
 ### SSL/TLS証明書の設定
 
@@ -471,25 +451,32 @@ sudo chmod 644 /etc/ssl/certs/keystone/keystone-cert.pem
 > - 自己署名証明書はブラウザで警告が表示されますが、学習環境では問題ありません
 > - 本番環境では必ず正規のSSL証明書（Let's Encryptなど）を使用してください
 > - 証明書の内容を確認するには: `openssl x509 -in /etc/ssl/certs/keystone/keystone-cert.pem -text -noout | grep -A 2 "Subject Alternative Name"`
-
-**既存の証明書を再作成する場合**（SANを含まない証明書が既に存在する場合）:
-
-```bash
-# 既存の証明書を削除
-sudo rm -f /etc/ssl/certs/keystone/keystone-cert.pem
-sudo rm -f /etc/ssl/private/keystone/keystone-key.pem
-
-# 上記のコマンドでSANを含む証明書を再作成
-```
+>
+> **既存の証明書を再作成する場合**（SANを含まない証明書が既に存在する場合）:
+>
+> ```bash
+> # 既存の証明書を削除
+> sudo rm -f /etc/ssl/certs/keystone/keystone-cert.pem
+> sudo rm -f /etc/ssl/private/keystone/keystone-key.pem
+>
+> # 上記のコマンドでSANを含む証明書を再作成
+> ```
+>
 
 ### Apache HTTP Serverの設定
 
 KeystoneはApache HTTP Server上でWSGIアプリケーションとして動作します。
 
-> **📌 注意**: Apacheパッケージは、Keystoneパッケージのインストール時に既にインストールされています（前のステップを参照）。未インストールの場合は、以下でインストールしてください：
+**📌 注意**: Apacheパッケージは、Keystoneパッケージのインストール時に既にインストールされています（前のステップを参照）。未インストールの場合は、以下でインストールしてください：
 
 ```bash
 sudo apt install -y apache2 libapache2-mod-wsgi-py3
+```
+
+**Apache設定ファイルのバックアップ**:
+
+```bash
+sudo cp /etc/apache2/apache2.conf /etc/apache2/apache2.conf.backup
 ```
 
 **Apache基本設定**:
@@ -506,7 +493,7 @@ sudo vim /etc/apache2/apache2.conf
 ServerName controller
 ```
 
-> **📌 注意**: Server Worldの例では`dlp.srv.world`を使用していますが、Vagrant環境では`controller`を使用します。
+**📌 注意**: Server Worldの例では`dlp.srv.world`を使用していますが、Vagrant環境では`controller`を使用します。
 
 **Keystone用のApache設定ファイルのバックアップ**:
 
@@ -617,12 +604,12 @@ Alias /identity /usr/bin/keystone-wsgi-public
 </Location>
 ```
 
-> **📌 注意**:
->
-> - 本番環境ではLet's Encrypt証明書の使用を推奨します
-> - 学習環境では自己署名証明書でも動作しますが、ブラウザで警告が表示されます
-> - 証明書ファイルのパスは、実際の環境に合わせて変更してください
-> - Ubuntu 24.04 + OpenStack Epoxyでは、ポート35357（adminポート）は使用されず、ポート5000のみで動作します。また、`/identity`エイリアスも設定されています。
+**📌 注意**:
+
+- 本番環境ではLet's Encrypt証明書の使用を推奨します
+- 学習環境では自己署名証明書でも動作しますが、ブラウザで警告が表示されます
+- 証明書ファイルのパスは、実際の環境に合わせて変更してください
+- Ubuntu 24.04 + OpenStack Epoxyでは、ポート35357（adminポート）は使用されず、ポート5000のみで動作します。また、`/identity`エイリアスも設定されています。
 
 **Keystone WSGIファイルの確認**:
 
@@ -648,10 +635,10 @@ head -20 /usr/bin/keystone-wsgi-public
 
 PBR（Python Build Reasonableness）によって生成されたコードが含まれていることを確認できます。
 
-> **📌 注意**:
->
-> - Ubuntu 24.04 + OpenStack Epoxyでは、`keystone`パッケージのインストール時に自動的に`/usr/bin/keystone-wsgi-public`が作成されます。手動で作成する必要はありません。
-> - `keystone-wsgi-admin`ファイルは使用されません（ポート5000のみでpublic/adminの両方の機能が動作します）。
+**📌 注意**:
+
+- Ubuntu 24.04 + OpenStack Epoxyでは、`keystone`パッケージのインストール時に自動的に`/usr/bin/keystone-wsgi-public`が作成されます。手動で作成する必要はありません。
+- `keystone-wsgi-admin`ファイルは使用されません（ポート5000のみでpublic/adminの両方の機能が動作します）。
 
 **SSLモジュールの有効化**:
 
@@ -684,21 +671,22 @@ sudo apache2ctl configtest
 Syntax OK
 ```
 
-エラーが表示された場合は、設定ファイルを確認してください。
-
-**Apacheサイトの有効化**:
-
-```bash
-sudo a2ensite keystone
-```
-
-**期待される出力**:
-
-```bash
-Enabling site keystone.
-To activate the new configuration, you need to run:
-  systemctl restart apache2
-```
+> エラーが表示された場合は、設定ファイルを確認してください。
+>
+> **Apacheサイトの有効化**:
+>
+> ```bash
+> sudo a2ensite keystone
+> ```
+>
+> **期待される出力**:
+>
+> ```bash
+> Enabling site keystone.
+> To activate the new configuration, you need to run:
+>   systemctl restart apache2
+> ```
+>
 
 **Apache設定のリロード**:
 
@@ -745,7 +733,7 @@ LISTEN 0      511          0.0.0.0:5000      0.0.0.0:*    users:(("apache2",pid=
 
 ポート5000がリスニング状態であることを確認します。
 
-> **📌 注意**: `netstat`コマンドは`net-tools`パッケージに含まれていますが、Ubuntu 24.04ではデフォルトでインストールされていません。代わりに`ss`コマンドを使用します（`ss`は`iproute2`パッケージに含まれ、デフォルトでインストールされています）。
+**📌 注意**: `netstat`コマンドは`net-tools`パッケージに含まれていますが、Ubuntu 24.04ではデフォルトでインストールされていません。代わりに`ss`コマンドを使用します（`ss`は`iproute2`パッケージに含まれ、デフォルトでインストールされています）。
 
 **Keystone APIの動作確認**:
 
@@ -797,7 +785,7 @@ curl -s https://controller:5000/identity/v3/ | python3 -m json.tool
 curl -k -s https://controller:5000/identity/v3/ | python3 -m json.tool
 ```
 
-> **📌 注意**: レスポンスが返ってこない場合は、以下のトラブルシューティング手順を参照してください。
+**📌 注意**: レスポンスが返ってこない場合は、以下のトラブルシューティング手順を参照してください。
 
 **ログの確認**:
 
@@ -881,12 +869,12 @@ export PS1='\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\W\[\033[00m\] \[\03
 openstack project list --insecure
 ```
 
-> **📌 注意**:
->
-> - SSL/TLS証明書を設定した場合は、必ずHTTPSを使用してください
-> - 自己署名証明書を使用している場合、上記のいずれかの方法で証明書検証を設定する必要があります
-> - `OS_INSECURE=true`は開発・学習環境でのみ使用し、本番環境では絶対に使用しないでください
-> - 証明書ファイルのパス（`OS_CACERT`）は、実際に作成した証明書のパスに合わせて調整してください
+**📌 注意**:
+
+- SSL/TLS証明書を設定した場合は、必ずHTTPSを使用してください
+- 自己署名証明書を使用している場合、上記のいずれかの方法で証明書検証を設定する必要があります
+- `OS_INSECURE=true`は開発・学習環境でのみ使用し、本番環境では絶対に使用しないでください
+- 証明書ファイルのパス（`OS_CACERT`）は、実際に作成した証明書のパスに合わせて調整してください
 
 **ファイルの権限設定**（セキュリティのため）:
 
@@ -909,16 +897,16 @@ echo $OS_PROJECT_NAME
 
 設定した値が表示されることを確認します。
 
-> **📌 参考**:
->
-> - プロジェクトの概念については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
-> - プロジェクトの設計方法については [Part 4 - プロジェクト・マルチテナント設計](04_system_design.md#3-プロジェクトマルチテナント設計) を参照してください。
+**📌 参考**:
+
+- プロジェクトの概念については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
+- プロジェクトの設計方法については [Part 4 - プロジェクト・マルチテナント設計](04_system_design.md#3-プロジェクトマルチテナント設計) を参照してください。
 
 ### `service`プロジェクトの作成（必須）
 
-> **⚠️ 重要**: `keystone-manage bootstrap`コマンドは`service`プロジェクトを**自動作成しません**。公式ドキュメントによると、`bootstrap`コマンドは`admin`プロジェクト、`admin`ユーザー、各種ロールのみを作成します。`service`プロジェクトは手動作成が必要です。
+**⚠️ 重要**: `keystone-manage bootstrap`コマンドは`service`プロジェクトを**自動作成しません**。公式ドキュメントによると、`bootstrap`コマンドは`admin`プロジェクト、`admin`ユーザー、各種ロールのみを作成します。`service`プロジェクトは手動作成が必要です。
 
-> **📌 参考**: `service`プロジェクトの役割については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
+**📌 参考**: `service`プロジェクトの役割については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
 
 **`service`プロジェクトの作成**:
 
@@ -926,13 +914,13 @@ echo $OS_PROJECT_NAME
 openstack project create --domain default --description "Service Project" service
 ```
 
-> **📌 注意**:
->
-> - `service`プロジェクトは、OpenStackの各サービスが慣習的に使用するプロジェクトです
-> - このプロジェクトがないと、Glance、Nova、Neutron、Cinderなどのサービスが正常に動作しません（各サービスは`service`プロジェクトに属するユーザーとして認証するため）
-> - 技術的には別の名前のプロジェクトでも動作しますが、OpenStackの標準的な手順に従うため、`service`という名前を使用することを推奨します
-> - 削除や名前変更は行わないでください
-> - 既に存在する場合は「既に存在する」というエラーが表示されますが、これは正常です
+**📌 注意**:
+
+- `service`プロジェクトは、OpenStackの各サービスが慣習的に使用するプロジェクトです
+- このプロジェクトがないと、Glance、Nova、Neutron、Cinderなどのサービスが正常に動作しません（各サービスは`service`プロジェクトに属するユーザーとして認証するため）
+- 技術的には別の名前のプロジェクトでも動作しますが、OpenStackの標準的な手順に従うため、`service`という名前を使用することを推奨します
+- 削除や名前変更は行わないでください
+- 既に存在する場合は「既に存在する」というエラーが表示されますが、これは正常です
 
 **作成されたプロジェクトの確認**:
 
@@ -942,10 +930,10 @@ openstack project list
 
 `admin`と`service`プロジェクトが表示されることを確認します。
 
-> **📌 参考**:
->
-> - [Server World - Keystone設定 #2](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)では、bootstrap後に明示的に`service`プロジェクトを作成しています
-> - [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)でも、`service`プロジェクトは手動作成が必要とされています
+**📌 参考**:
+
+- [Server World - Keystone設定 #2](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)では、bootstrap後に明示的に`service`プロジェクトを作成しています
+- [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)でも、`service`プロジェクトは手動作成が必要とされています
 
 ### 作成されたリソースの確認
 
@@ -1035,7 +1023,7 @@ openstack token issue
 
 ## ⚠️ トラブルシューティング
 
-> **📌 注意**: データベース接続エラー、認証エラー、トークンエラー、データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
+**📌 注意**: データベース接続エラー、認証エラー、トークンエラー、データベース同期エラーなどの汎用的な問題については、[トラブルシューティングガイド](./appendix_b_troubleshooting.md)を参照してください。
 
 ### 問題1: Apacheサービスが起動しない
 

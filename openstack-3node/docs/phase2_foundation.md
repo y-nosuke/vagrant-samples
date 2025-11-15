@@ -440,19 +440,36 @@ sudo vim /etc/mysql/mariadb.conf.d/50-server.cnf
 [mysqld]
 # 以下の行を見つけて変更
 # bind-address = 127.0.0.1
+# 注意: 全てのインターフェースでリスンする場合は 0.0.0.0
+#       特定のIPアドレスのみでリスンする場合は、コントローラノードの管理ネットワークIPを指定
+#       例: bind-address = 172.16.100.10
 bind-address = 0.0.0.0
 
-# 追加設定（OpenStack推奨設定）
-# 注意: Server Worldの一般的なMariaDBページには記載されていませんが、
-# OpenStackの公式ドキュメントで推奨されている設定です
-collation-server = utf8mb4_general_ci
-character-set-server = utf8mb4
-
-default-storage-engine = innodb
-innodb_file_per_table = on
-max_connections = 4096
-init-connect = 'SET NAMES utf8mb4'
+# 接続数の設定（Server Worldの設定に合わせて1000に設定）
+# デフォルト値100では不足することがあるため、1000に設定
+max_connections = 1000
 ```
+
+**📌 設定の説明**:
+
+- **bind-address**:
+  - `0.0.0.0`: 全てのネットワークインターフェースでリスン（Vagrant環境ではこれで問題なし）
+  - `172.16.100.10`: 特定のIPアドレスのみでリスン（セキュリティ向上、本番環境推奨）
+- **max_connections**:
+  - Server Worldの設定に合わせて1000に設定
+  - デフォルト値100ではOpenStackの複数のサービスが同時接続する際に不足することがある
+
+**📌 オプション: 文字コード設定**:
+
+プロビジョニングスクリプトでは文字コード設定も行っていますが、Server WorldのOpenStack Epoxyの設定には記載されていません。MariaDBのデフォルト設定で問題ないことが多いため、以下の設定はオプションです：
+
+```ini
+[mysqld]
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+```
+
+この設定を追加する場合は、上記の`max_connections`の後に追加してください。
 
 **MariaDBサービスの再起動**:
 
@@ -466,73 +483,39 @@ sudo systemctl status mariadb
 
 ### OpenStack用データベースの作成準備
 
-**リモート接続用rootユーザーの設定**:
+**📌 重要**:
+
+- プロビジョニングスクリプト（`foundation_mariadb.sh`）では、セキュリティのためリモート接続用のrootユーザーを削除しています
+- OpenStackの各サービス（Keystone、Glance、Novaなど）は、それぞれ専用のデータベースユーザーを使用します
+- これらのサービスユーザーは、各サービスのデータベース作成時に`@'localhost'`と`@'%'`の両方で作成されるため、リモート接続が可能です
+- rootユーザーはローカルホストからのみ接続可能で、これがセキュリティ上推奨される設定です
+
+**ローカルホストからの接続確認**:
 
 ```bash
+# コントローラノードで確認
 mysql -u root -p
 ```
 
-**SQL実行**:
+パスワードを入力してMariaDBに接続できることを確認します。
 
 ```sql
--- リモート接続用のrootユーザーを作成
--- 注意: mysql_secure_installationの「Disallow root login remotely? [Y/n] n」は
---       既存のroot@'%'ユーザーを削除しないという意味であり、新規作成はしません。
---       リモート接続を可能にするには、明示的にroot@'%'ユーザーを作成する必要があります。
-CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY 'password';
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+-- バージョン確認
+SELECT VERSION();
 
--- 設定の反映
-FLUSH PRIVILEGES;
+-- データベース一覧表示
+SHOW DATABASES;
 
--- 設定確認
+-- rootユーザーの接続先確認（localhostのみであることを確認）
 SELECT User, Host FROM mysql.user WHERE User = 'root';
 
+-- 終了
 EXIT;
 ```
 
-**他ノードからの接続確認**:
+**📌 次のステップ**:
 
-```bash
-# controllerから一度出る
-exit
-
-# networkノードにMariaDBクライアントをインストール
-vagrant ssh network
-sudo apt update
-sudo apt install -y mariadb-client
-
-# networkノードから接続テスト
-mysql -h controller -u root -p
-```
-
-MariaDBにリモート接続できることを確認します。
-
-```sql
-SHOW DATABASES;
-EXIT;
-```
-
-```bash
-exit
-
-# compute1ノードにMariaDBクライアントをインストール
-vagrant ssh compute1
-sudo apt update
-sudo apt install -y mariadb-client
-
-# compute1ノードからも同様に確認
-mysql -h controller -u root -p
-```
-
-```sql
-SHOW DATABASES;
-EXIT;
-```
-
-```bash
-exit
-```
+データベースの準備が完了しました。次のPhase（Phase 3: Keystone）で、各OpenStackサービス用のデータベースとユーザーを作成します。各サービスユーザーは、データベース作成時に自動的にリモート接続可能（`@'%'`）に設定されます。
 
 ---
 
@@ -735,7 +718,7 @@ quit
 
 NginxはGlanceサービスで使用します。大容量ファイル転送に適しているため、Server Worldの手順に従ってNginxをインストールします。
 
-> **📌 参考**: [Server World - 連携サービスのインストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=2)
+**📌 参考**: [Server World - 連携サービスのインストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=2)
 
 ### Nginxのインストール
 
@@ -797,7 +780,7 @@ sudo ss -tuln | grep :80
 tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN
 ```
 
-> **📌 注意**: この時点ではデフォルトサイトを無効化しているため、ポート80でアクセスしてもエラーが返ります。これは正常です。Glanceの設定時にポート9292で設定します。
+**📌 注意**: この時点ではデフォルトサイトを無効化しているため、ポート80でアクセスしてもエラーが返ります。これは正常です。Glanceの設定時にポート9292で設定します。
 
 ---
 

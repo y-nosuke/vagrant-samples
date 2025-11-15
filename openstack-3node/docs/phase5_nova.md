@@ -1,14 +1,14 @@
 # Phase 5: Nova（コンピュートサービス）
 
-## 📋 目次
+## 目次
 
 - [Phase 5: Nova（コンピュートサービス）](#phase-5-novaコンピュートサービス)
-  - [📋 目次](#-目次)
-  - [概要](#概要)
+  - [目次](#目次)
+  - [📋 概要](#-概要)
     - [Novaの主な機能](#novaの主な機能)
-    - [Novaのアーキテクチャ](#novaのアーキテクチャ)
-  - [前提条件](#前提条件)
-  - [Phase 5の構成図](#phase-5の構成図)
+    - [Novaの主要コンポーネント](#novaの主要コンポーネント)
+  - [🎯 前提条件](#-前提条件)
+  - [📐 Novaのアーキテクチャ](#-novaのアーキテクチャ)
     - [Step 5-1の詳細フロー](#step-5-1の詳細フロー)
   - [📝 Step 5-1: Novaコントローラ側のインストール](#-step-5-1-novaコントローラ側のインストール)
     - [データベースの作成](#データベースの作成)
@@ -22,6 +22,7 @@
     - [Novaサービスの起動](#novaサービスの起動)
     - [Novaの動作確認](#novaの動作確認)
   - [📝 Step 5-2: Novaコンピュート側のインストール](#-step-5-2-novaコンピュート側のインストール)
+    - [KVMハイパーバイザーのインストール](#kvmハイパーバイザーのインストール)
     - [Novaパッケージのインストール](#novaパッケージのインストール-1)
     - [Nova設定ファイルの編集](#nova設定ファイルの編集-1)
     - [libvirt / KVMの設定確認](#libvirt--kvmの設定確認)
@@ -35,15 +36,16 @@
     - [問題1: Nova APIに接続できない（502 Bad Gateway）](#問題1-nova-apiに接続できない502-bad-gateway)
     - [問題2: nova-conductorがPlacementサービスに接続できない](#問題2-nova-conductorがplacementサービスに接続できない)
     - [問題3: コンピュートノードが登録されない](#問題3-コンピュートノードが登録されない)
-    - [問題4: KVMが有効になっていない](#問題4-kvmが有効になっていない)
-    - [問題5: Cellの登録エラー](#問題5-cellの登録エラー)
+    - [問題4: RabbitMQ認証エラー](#問題4-rabbitmq認証エラー)
+    - [問題5: KVMが有効になっていない](#問題5-kvmが有効になっていない)
+    - [問題6: Cellの登録エラー](#問題6-cellの登録エラー)
   - [📚 次のステップ](#-次のステップ)
   - [📝 学習記録](#-学習記録)
   - [🔗 関連ドキュメント](#-関連ドキュメント)
 
 ---
 
-## 概要
+## 📋 概要
 
 **Phase 5の目的**: 仮想マシンの管理システムを構築する
 
@@ -60,7 +62,7 @@
 | **Flavor管理**           | VMのインスタンスタイプ（サイズ）の定義     |
 | **コンソールアクセス**   | VNC/SPICEによるVMコンソールへのアクセス    |
 
-### Novaのアーキテクチャ
+### Novaの主要コンポーネント
 
 ```mermaid
 graph TB
@@ -95,7 +97,7 @@ graph TB
     style Libvirt fill:#e1bee7
 ```
 
-**主要コンポーネント**:
+**コンポーネントの説明**:
 
 - **nova-api**: REST APIを提供するサーバー（コントローラノード）
 - **nova-scheduler**: 適切なコンピュートノードを選択（コントローラノード）
@@ -106,7 +108,7 @@ graph TB
 
 ---
 
-## 前提条件
+## 🎯 前提条件
 
 Phase 5を開始する前に、以下が完了していることを確認してください：
 
@@ -131,7 +133,7 @@ openstack image list
 
 ---
 
-## Phase 5の構成図
+## 📐 Novaのアーキテクチャ
 
 ```mermaid
 graph LR
@@ -234,12 +236,12 @@ EXIT;
 > - `PLACEMENT_PASS`: PlacementユーザーのKeystoneパスワード（任意の値）
 > - `RABBIT_PASS`: RabbitMQのopenstackユーザーパスワード（Phase 2で設定したもの）
 
-> **📌 データベースの説明**:
->
-> - **nova_api**: API関連のデータ（エンドポイント、サービス情報など）
-> - **nova**: インスタンス情報、リソース情報（Cell1用）
-> - **placement**: Placementサービス用（リソースの割り当て情報を管理）
-> - **nova_cell0**: 未配置のインスタンス情報（Cell0用）
+**📌 データベースの説明**:
+
+- **nova_api**: API関連のデータ（エンドポイント、サービス情報など）
+- **nova**: インスタンス情報、リソース情報（Cell1用）
+- **placement**: Placementサービス用（リソースの割り当て情報を管理）
+- **nova_cell0**: 未配置のインスタンス情報（Cell0用）
 
 > **📌 参考**: [Server World - Nova の設定 #1](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=7) では、placementデータベースの作成も含まれています。
 
@@ -284,25 +286,25 @@ openstack endpoint create --region RegionOne compute admin https://controller:87
 
 > **📌 注意**: Server Worldの手順では`https://controller:8774/v2.1/%(tenant_id)s`という形式を使用していますが、公式ドキュメントによると、Nova API v2.1では`%(tenant_id)s`は不要です。上記の形式（`%(tenant_id)s`なし）が公式推奨です。
 
-> **📌 エンドポイントURLの`%(tenant_id)s`について**:
->
-> - **公式ドキュメントの見解**:
->   - **Nova API v2.1では、エンドポイントURLに`%(tenant_id)s`を含める必要はありません**
->   - v2.1では、テナントIDは認証トークンを通じて提供されるため、URLパスに含める必要がなくなりました
->   - 推奨される形式: `https://controller:8774/v2.1`（`%(tenant_id)s`なし）
-> - **Server Worldの手順について**:
->   - Server Worldの手順では`https://controller:8774/v2.1/%(tenant_id)s`という形式を使用しています
->   - これは後方互換性のため、または古いバージョンの手順に基づいている可能性があります
->   - 実際には、`%(tenant_id)s`を含めても動作しますが、公式ドキュメントでは不要とされています
-> - **Nova API v2 vs v2.1の違い**:
->   - **v2**: `/v2/%(tenant_id)s`形式を使用（URLパスにテナントIDが必要）
->   - **v2.1**: `/v2.1`形式を使用（テナントIDは認証トークンから取得）
-> - **実際の動作**:
->   - `%(tenant_id)s`なし: `https://controller:8774/v2.1` → 認証トークンからプロジェクトIDを取得
->   - `%(tenant_id)s`あり: `https://controller:8774/v2.1/%(tenant_id)s` → URLパスでもテナントIDを指定可能（後方互換性）
-> - **推奨**:
->   - 公式ドキュメントに従い、`%(tenant_id)s`なしの形式（`https://controller:8774/v2.1`）を使用することを推奨します
->   - ただし、Server Worldの手順に従う場合は、`%(tenant_id)s`を含める形式でも動作します
+**📌 エンドポイントURLの`%(tenant_id)s`について**:
+
+- **公式ドキュメントの見解**:
+  - **Nova API v2.1では、エンドポイントURLに`%(tenant_id)s`を含める必要はありません**
+  - v2.1では、テナントIDは認証トークンを通じて提供されるため、URLパスに含める必要がなくなりました
+  - 推奨される形式: `https://controller:8774/v2.1`（`%(tenant_id)s`なし）
+- **Server Worldの手順について**:
+  - Server Worldの手順では`https://controller:8774/v2.1/%(tenant_id)s`という形式を使用しています
+  - これは後方互換性のため、または古いバージョンの手順に基づいている可能性があります
+  - 実際には、`%(tenant_id)s`を含めても動作しますが、公式ドキュメントでは不要とされています
+- **Nova API v2 vs v2.1の違い**:
+  - **v2**: `/v2/%(tenant_id)s`形式を使用（URLパスにテナントIDが必要）
+  - **v2.1**: `/v2.1`形式を使用（テナントIDは認証トークンから取得）
+- **実際の動作**:
+  - `%(tenant_id)s`なし: `https://controller:8774/v2.1` → 認証トークンからプロジェクトIDを取得
+  - `%(tenant_id)s`あり: `https://controller:8774/v2.1/%(tenant_id)s` → URLパスでもテナントIDを指定可能（後方互換性）
+- **推奨**:
+  - 公式ドキュメントに従い、`%(tenant_id)s`なしの形式（`https://controller:8774/v2.1`）を使用することを推奨します
+  - ただし、Server Worldの手順に従う場合は、`%(tenant_id)s`を含める形式でも動作します
 
 **placementユーザーの作成**:
 
@@ -355,13 +357,13 @@ openstack endpoint list --service placement
 +----------------------------------+-----------+-----------+
 
 # openstack endpoint list --service compute
-+----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
-| ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                       |
-+----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
-| ...                              | RegionOne | nova         | compute      | True    | public    | https://controller:8774/v2.1|
-| ...                              | RegionOne | nova         | compute      | True    | internal  | https://controller:8774/v2.1|
-| ...                              | RegionOne | nova         | compute      | True    | admin     | https://controller:8774/v2.1|
-+----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
++----------------------------------+-----------+--------------+--------------+---------+-----------+------------------------------+
+| ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                          |
++----------------------------------+-----------+--------------+--------------+---------+-----------+------------------------------+
+| ...                              | RegionOne | nova         | compute      | True    | public    | https://controller:8774/v2.1 |
+| ...                              | RegionOne | nova         | compute      | True    | internal  | https://controller:8774/v2.1 |
+| ...                              | RegionOne | nova         | compute      | True    | admin     | https://controller:8774/v2.1 |
++----------------------------------+-----------+--------------+--------------+---------+-----------+------------------------------+
 ```
 
 ---
@@ -434,11 +436,11 @@ insecure = true
 connection = mysql+pymysql://placement:PLACEMENT_DBPASS@controller/placement
 ```
 
-> **📌 設定項目の説明**:
->
-> - **connection**: Placementデータベースへの接続設定
-> - **auth_strategy**: Keystone認証を使用
-> - **insecure**: SSL証明書の検証（false=検証する）
+**📌 設定項目の説明**:
+
+- **connection**: Placementデータベースへの接続設定
+- **auth_strategy**: Keystone認証を使用
+- **insecure**: SSL証明書の検証（false=検証する）
 
 **データベースの同期**:
 
@@ -446,10 +448,10 @@ connection = mysql+pymysql://placement:PLACEMENT_DBPASS@controller/placement
 sudo su -s /bin/bash placement -c "placement-manage db sync"
 ```
 
-> **📌 コマンド解説**: `placement-manage db sync`
->
-> - **目的**: Placementデータベースのスキーマを作成または更新します
-> - **動作**: データベース接続設定に基づいて、必要なテーブルを作成します
+**📌 コマンド解説**: `placement-manage db sync`
+
+- **目的**: Placementデータベースのスキーマを作成または更新します
+- **動作**: データベース接続設定に基づいて、必要なテーブルを作成します
 
 **データベースにテーブルが作成されたことを確認**:
 
@@ -496,22 +498,22 @@ sudo systemctl restart apache2
 
 Glanceと同様に、Nova/Placement/novncproxyも`/etc/nginx/sites-available/`に個別の設定ファイルを作成します。
 
-> **📌 `stream`セクションと`server`ブロック（HTTP）の違い**:
->
-> - **`stream`セクション**: TCP/UDPレベルのプロキシ（レイヤー4）
->   - TCPストリームをそのまま転送
->   - HTTPヘッダーの解析や変更ができない
->   - `client_max_body_size`などのHTTP特有の設定が使えない
->   - MySQL、Redis、SSHなどのTCPプロトコル用
->
-> - **`server`ブロック（HTTP）**: HTTPレベルのプロキシ（レイヤー7）
->   - HTTPリクエスト/レスポンスを解析できる
->   - HTTPヘッダーの追加・変更が可能（`proxy_set_header`など）
->   - `client_max_body_size`、`client_header_buffer_size`などのHTTP特有の設定が使える
->   - `location`ディレクティブでパスベースのルーティングが可能
->   - OpenStackのHTTP/HTTPSサービス用
->
-> OpenStackのサービス（Glance、Nova、Placementなど）はHTTP/HTTPSで動作し、大容量ファイル転送やHTTPヘッダーの操作が必要なため、**`server`ブロック（HTTP）を使う方が適切**です。
+**📌 `stream`セクションと`server`ブロック（HTTP）の違い**:
+
+- **`stream`セクション**: TCP/UDPレベルのプロキシ（レイヤー4）
+  - TCPストリームをそのまま転送
+  - HTTPヘッダーの解析や変更ができない
+  - `client_max_body_size`などのHTTP特有の設定が使えない
+  - MySQL、Redis、SSHなどのTCPプロトコル用
+
+- **`server`ブロック（HTTP）**: HTTPレベルのプロキシ（レイヤー7）
+  - HTTPリクエスト/レスポンスを解析できる
+  - HTTPヘッダーの追加・変更が可能（`proxy_set_header`など）
+  - `client_max_body_size`、`client_header_buffer_size`などのHTTP特有の設定が使える
+  - `location`ディレクティブでパスベースのルーティングが可能
+  - OpenStackのHTTP/HTTPSサービス用
+
+OpenStackのサービス（Glance、Nova、Placementなど）はHTTP/HTTPSで動作し、大容量ファイル転送やHTTPヘッダーの操作が必要なため、**`server`ブロック（HTTP）を使う方が適切**です。
 
 **Nova API用のNginx設定ファイルの作成**:
 
@@ -785,25 +787,25 @@ sudo chgrp nova /etc/nova/nova.conf
 
 > **📌 セキュリティ**: 設定ファイルにはパスワードが含まれているため、適切なパーミッションを設定します。
 
-> **📌 設定項目の説明**:
->
-> - **transport_url**: RabbitMQへの接続（Phase 2で設定したもの）
-> - **my_ip**: コントローラノードの管理ネットワークIPアドレス
-> - **use_neutron**: Neutronを使用する（Phase 6で設定）
-> - **firewall_driver**: Neutronがファイアウォールを管理するため、Novaのファイアウォールドライバーを無効化
-> - **vncserver_listen**: VNCサーバーのリスンアドレス
-> - **vncserver_proxyclient_address**: VNCプロキシのアドレス
-> - **novncproxy_base_url**: VNCコンソールへのアクセスURL
-> - **api_servers**: Glance APIサーバーのアドレス
-> - **insecure**: SSL証明書の検証（false=検証する）
-> - **placement**: Placementサービス（リソース管理）の設定（Phase 5では簡易設定）
+**📌 設定項目の説明**:
 
-> **📌 重要な設定項目**:
->
-> - **my_ip**: コントローラノードの管理ネットワークIP（172.16.100.10）を設定
-> - **transport_url**: RabbitMQへの接続（Phase 2で設定）
-> - **use_neutron = true**: Neutronを使用する（Phase 6で設定するため、現時点ではエラーが出る可能性がありますが、後で解決します）
-> - **firewall_driver**: Neutronがファイアウォールを管理するため、NoopFirewallDriverを設定
+- **transport_url**: RabbitMQへの接続（Phase 2で設定したもの）
+- **my_ip**: コントローラノードの管理ネットワークIPアドレス
+- **use_neutron**: Neutronを使用する（Phase 6で設定）
+- **firewall_driver**: Neutronがファイアウォールを管理するため、Novaのファイアウォールドライバーを無効化
+- **vncserver_listen**: VNCサーバーのリスンアドレス
+- **vncserver_proxyclient_address**: VNCプロキシのアドレス
+- **novncproxy_base_url**: VNCコンソールへのアクセスURL
+- **api_servers**: Glance APIサーバーのアドレス
+- **insecure**: SSL証明書の検証（false=検証する）
+- **placement**: Placementサービス（リソース管理）の設定（Phase 5では簡易設定）
+
+**📌 重要な設定項目**:
+
+- **my_ip**: コントローラノードの管理ネットワークIP（172.16.100.10）を設定
+- **transport_url**: RabbitMQへの接続（Phase 2で設定）
+- **use_neutron = true**: Neutronを使用する（Phase 6で設定するため、現時点ではエラーが出る可能性がありますが、後で解決します）
+- **firewall_driver**: Neutronがファイアウォールを管理するため、NoopFirewallDriverを設定
 
 ---
 
@@ -822,11 +824,11 @@ sudo su -s /bin/bash nova -c "nova-manage cell_v2 map_cell0"
 sudo su -s /bin/bash nova -c "nova-manage db sync"
 ```
 
-> **📌 コマンド解説**: `nova-manage`
->
-> - **api_db sync**: nova_apiデータベースのスキーマを作成または更新します
-> - **cell_v2 map_cell0**: nova_cell0データベースをCell0として登録します
-> - **db sync**: novaデータベースのスキーマを作成または更新します（Cell1用）
+**📌 コマンド解説**: `nova-manage`
+
+- **api_db sync**: nova_apiデータベースのスキーマを作成または更新します
+- **cell_v2 map_cell0**: nova_cell0データベースをCell0として登録します
+- **db sync**: novaデータベースのスキーマを作成または更新します（Cell1用）
 
 **データベースにテーブルが作成されたことを確認**:
 
@@ -848,14 +850,13 @@ sudo su -s /bin/bash nova -c "nova-manage cell_v2 create_cell --name cell1"
 ```bash
 --transport-url not provided in the command line, using the value [DEFAULT]/transport_url from the configuration file
 --database_connection not provided in the command line, using the value [database]/connection from the configuration file
-e845836b-ead4-436e-843c-03862f08f19f
 ```
 
-> **📌 出力の説明**:
->
-> - 最初の2行は、コマンドライン引数が指定されていないため、設定ファイル（`nova.conf`）から値を読み取っていることを示しています
-> - 最後の行（`e845836b-ead4-436e-843c-03862f08f19f`）は、作成されたCell1のUUIDです
-> - このUUIDが表示されれば、Cell1の作成は成功しています
+**📌 出力の説明**:
+
+- 最初の2行は、コマンドライン引数が指定されていないため、設定ファイル（`nova.conf`）から値を読み取っていることを示しています
+- 最後の行（`e845836b-ead4-436e-843c-03862f08f19f`）は、作成されたCell1のUUIDです
+- このUUIDが表示されれば、Cell1の作成は成功しています
 
 **Cell1の登録確認**:
 
@@ -866,19 +867,19 @@ sudo su -s /bin/bash nova -c "nova-manage cell_v2 list_cells"
 **期待される出力**:
 
 ```bash
-+-------+--------------------------------------+-----------------------------------------------------+--------------------------------------------------+
++-------+--------------------------------------+------------------------------------------------------+--------------------------------------------------+
 | Name  | UUID                                 | Transport URL                                        | Database Connection                              |
-+-------+--------------------------------------+-----------------------------------------------------+--------------------------------------------------+
-| cell0 | 00000000-0000-0000-0000-000000000000 | none:/                                               | mysql+pymysql://nova:***@controller/nova_cell0  |
-| cell1 | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx | rabbit://openstack:***@controller:5672/             | mysql+pymysql://nova:***@controller/nova        |
-+-------+--------------------------------------+-----------------------------------------------------+--------------------------------------------------+
++-------+--------------------------------------+------------------------------------------------------+--------------------------------------------------+
+| cell0 | 00000000-0000-0000-0000-000000000000 | none:/                                               | mysql+pymysql://nova:***@controller/nova_cell0   |
+| cell1 | xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx | rabbit://openstack:***@controller:5672/              | mysql+pymysql://nova:***@controller/nova         |
++-------+--------------------------------------+------------------------------------------------------+--------------------------------------------------+
 ```
 
-> **📌 Cellの概念**:
->
-> - **Cell0**: 未配置のインスタンス情報を保存（スケジューリング前の状態）
-> - **Cell1**: 実際のインスタンス情報を保存（スケジューリング後の状態）
-> - 複数のCellを作成することで、大規模環境でのスケーラビリティを向上させることができます
+**📌 Cellの概念**:
+
+- **Cell0**: 未配置のインスタンス情報を保存（スケジューリング前の状態）
+- **Cell1**: 実際のインスタンス情報を保存（スケジューリング後の状態）
+- 複数のCellを作成することで、大規模環境でのスケーラビリティを向上させることができます
 
 ---
 
@@ -887,12 +888,13 @@ sudo su -s /bin/bash nova -c "nova-manage cell_v2 list_cells"
 **Novaサービスの起動**:
 
 > **📌 重要**: Nginx設定を適用する前に、Novaサービスを一時的に停止する必要があります。Novaサービスが既に起動している場合、Nginxが同じポートでバインドしようとして失敗する可能性があります。
-
-**Novaサービスの一時停止（既に起動している場合）**:
-
-```bash
-sudo systemctl stop nova-api nova-conductor nova-scheduler nova-novncproxy
-```
+>
+> **Novaサービスの一時停止（既に起動している場合）**:
+>
+> ```bash
+> sudo systemctl stop nova-api nova-conductor nova-scheduler nova-novncproxy
+> ```
+>
 
 **Apache2とNginxの再起動**:
 
@@ -910,32 +912,34 @@ sudo systemctl enable nova-api nova-conductor nova-scheduler nova-novncproxy
 ```
 
 > **📌 注意**: Novaサービス（nova-api、nova-metadata-api、nova-novncproxy）は`127.0.0.1`でリスニングし、Nginxが`172.16.100.10`でリスニングするため、ポート競合は発生しません。
-
-**サービスの状態確認**:
-
-```bash
-sudo systemctl status nova-api nova-conductor nova-scheduler nova-novncproxy
-```
-
-**期待される出力**:
-
-```bash
-● nova-api.service - OpenStack Compute API server
-     Loaded: loaded (/lib/systemd/system/nova-api.service; enabled; vendor preset: enabled)
-     Active: active (running) since ...
-
-● nova-conductor.service - OpenStack Compute Conductor service
-     Loaded: loaded (/lib/systemd/system/nova-conductor.service; enabled; vendor preset: enabled)
-     Active: active (running) since ...
-
-● nova-scheduler.service - OpenStack Compute Scheduler service
-     Loaded: loaded (/lib/systemd/system/nova-scheduler.service; enabled; vendor preset: enabled)
-     Active: active (running) since ...
-
-● nova-novncproxy.service - OpenStack Compute VNC proxy service
-     Loaded: loaded (/lib/systemd/system/nova-novncproxy.service; enabled; vendor preset: enabled)
-     Active: active (running) since ...
-```
+>
+> **サービスの状態確認**:
+>
+> ```bash
+> sudo systemctl status nova-api nova-conductor nova-scheduler nova-novncproxy
+> ```
+>
+>
+> **期待される出力**:
+>
+> ```bash
+> ● nova-api.service - OpenStack Compute API server
+>      Loaded: loaded (/lib/systemd/system/nova-api.service; enabled; vendor preset: enabled)
+>      Active: active (running) since ...
+>
+> ● nova-conductor.service - OpenStack Compute Conductor service
+>      Loaded: loaded (/lib/systemd/system/nova-conductor.service; enabled; vendor preset: enabled)
+>      Active: active (running) since ...
+>
+> ● nova-scheduler.service - OpenStack Compute Scheduler service
+>      Loaded: loaded (/lib/systemd/system/nova-scheduler.service; enabled; vendor preset: enabled)
+>      Active: active (running) since ...
+>
+> ● nova-novncproxy.service - OpenStack Compute VNC proxy service
+>      Loaded: loaded (/lib/systemd/system/nova-novncproxy.service; enabled; vendor preset: enabled)
+>      Active: active (running) since ...
+> ```
+>
 
 **ポートの確認**:
 
@@ -946,37 +950,77 @@ sudo ss -tlnp | grep -E "(8774|8778|6080)"
 **期待される出力例**:
 
 ```bash
-LISTEN 0      511          0.0.0.0:8774        0.0.0.0:*    users:(("nova-api",pid=XXXX,fd=X))
-LISTEN 0      511          0.0.0.0:8778        0.0.0.0:*    users:(("placement-api",pid=XXXX,fd=X))
-LISTEN 0      511          0.0.0.0:6080        0.0.0.0:*    users:(("nova-novncproxy",pid=XXXX,fd=X))
+# Nginxがリバースプロキシとして外部IP（172.16.100.10）でリッスン
+LISTEN 0      511    172.16.100.10:8774       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
+LISTEN 0      511    172.16.100.10:8778       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
+LISTEN 0      511    172.16.100.10:6080       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
+
+# 実際のサービスがローカルホスト（127.0.0.1）でリッスン
+LISTEN 0      128        127.0.0.1:8774       0.0.0.0:*    users:(("nova-api",pid=XXXX,fd=X))
+LISTEN 0      511        127.0.0.1:8778       0.0.0.0:*    users:(("apache2",pid=XXXX,fd=X))
+LISTEN 0      100        127.0.0.1:6080       0.0.0.0:*    users:(("nova-novncproxy",pid=XXXX,fd=X))
 ```
 
-- nova-apiが`0.0.0.0:8774`でリスニング
-- placement-apiが`0.0.0.0:8778`でリスニング
-- nova-novncproxyが`0.0.0.0:6080`でリスニング
+**構成の説明**:
 
-> **📌 Placementサービスについて**:
->
-> **Ubuntu 24.04の`placement-api`パッケージは、インストール時にsystemdサービスが自動的に有効化（`systemctl enable`）されます。**
->
-> ただし、設定ファイル（`/etc/placement/placement.conf`）が正しく設定されていない場合、サービスは有効化されていても起動に失敗する可能性があります。
->
-> Server Worldの手順では、Placementサービスの明示的な起動コマンドは記載されていません。これは、パッケージインストール時に自動的に有効化されているためです。
->
-> **Placementサービスの状態を確認**:
->
-> ```bash
-> # サービスの状態確認
-> sudo systemctl status placement-api
-> ```
->
-> もしPlacementサービスが起動していない場合は、設定ファイルを確認した後、以下のコマンドで明示的に起動できます：
->
-> ```bash
-> # Placementサービスの起動（必要な場合のみ）
-> sudo systemctl restart placement-api
-> sudo systemctl enable placement-api
-> ```
+- **Nginx（リバースプロキシ）**: `172.16.100.10`で外部からアクセス可能なポートでリッスン
+  - `172.16.100.10:8774` → Nova API用
+  - `172.16.100.10:8778` → Placement API用
+  - `172.16.100.10:6080` → Nova VNC Proxy用
+- **実際のサービス**: `127.0.0.1`（ローカルホスト）でリッスン
+  - `127.0.0.1:8774` → nova-apiサービス
+  - `127.0.0.1:8778` → apache2（Placement API）
+  - `127.0.0.1:6080` → nova-novncproxyサービス
+
+> **📌 注意**: この構成では、NginxがリバースプロキシとしてSSL終端を行い、バックエンドのサービス（nova-api、apache2/placement、nova-novncproxy）はHTTPでローカルホストのみでリッスンしています。これにより、セキュリティとパフォーマンスが向上します。
+
+**📌 Placementサービスについて**:
+
+**Placement APIは独立したsystemdサービス（`placement-api.service`）ではなく、ApacheのWSGIアプリケーションとして動作します。**
+
+Placement APIは以下の構成で動作します：
+
+- **WSGIアプリケーション**: `/usr/bin/placement-api`
+- **Apache設定**: `/etc/apache2/sites-available/placement-api.conf`
+- **管理サービス**: `apache2`サービスで管理
+- **リスニングポート**: `127.0.0.1:8778`（Apache）、`172.16.100.10:8778`（Nginxリバースプロキシ）
+
+**Placement APIの状態を確認**:
+
+```bash
+# Apacheサービスの状態確認（Placement APIはApacheで動作）
+sudo systemctl status apache2
+```
+
+**期待される出力**:
+
+```bash
+● apache2.service - The Apache HTTP Server
+     Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor preset: enabled)
+     Active: active (running) since ...
+```
+
+**ポートのリスニング確認**:
+
+```bash
+# ポート8778がリッスンしているか確認
+sudo ss -tlnp | grep :8778
+```
+
+**期待される出力**:
+
+```bash
+LISTEN 0      511        127.0.0.1:8778       0.0.0.0:*    users:(("apache2",pid=XXXX,fd=X))
+LISTEN 0      511    172.16.100.10:8778       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
+```
+
+もしPlacement APIが動作していない場合は、Apacheサービスを再起動してください：
+
+```bash
+# Apacheサービスの再起動（Placement APIを含む）
+sudo systemctl restart apache2
+sudo systemctl enable apache2
+```
 
 **ログの確認**:
 
@@ -1051,7 +1095,11 @@ openstack compute service list
 
 ## 📝 Step 5-2: Novaコンピュート側のインストール
 
-### Novaパッケージのインストール
+> **📌 参考**: この手順は、[Server World - OpenStack Epoxy2 - Compute ノードを他ホストに分離して構成する](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy2&f=3)を参考にしています。All-in-One構成ではなく、Computeノードを別ホストに分離する場合の手順です。
+
+### KVMハイパーバイザーのインストール
+
+> **📌 参考**: Server Worldのepoxy2ページでは、[KVMハイパーバイザーのインストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=kvm&f=1)を先に行うことが推奨されています。ただし、ブリッジの設定は不要です。
 
 **コンピュートノードにSSH接続**:
 
@@ -1059,13 +1107,69 @@ openstack compute service list
 vagrant ssh compute1
 ```
 
-**Nova Computeパッケージのインストール**:
+**KVMハイパーバイザーパッケージのインストール**:
 
 ```bash
 sudo apt update
 sudo apt upgrade -y
-sudo apt install -y nova-compute
+sudo apt install -y qemu-kvm libvirt-daemon-system libvirt-daemon virtinst bridge-utils libosinfo-bin
 ```
+
+> **📌 パッケージの説明**:
+>
+> - **qemu-kvm**: KVMハイパーバイザーのパッケージ
+> - **libvirt-daemon-system**: libvirtデーモンとシステム設定
+> - **libvirt-daemon**: libvirtデーモンのコアパッケージ（`libvirt-daemon-system`に依存関係として含まれるが、明示的に指定）
+> - **virtinst**: 仮想マシンをコマンドラインから作成するためのツール（virt-installコマンド）。トラブルシューティング時に便利
+> - **bridge-utils**: ブリッジユーティリティ（Neutronで使用）
+> - **libosinfo-bin**: OS情報データベースのコマンドラインツール。仮想マシンのOS情報管理に使用
+>
+> **📌 注意**: Server WorldのKVMインストールページ（[KVM インストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=kvm&f=1)）では、上記のパッケージが推奨されています。OpenStackのComputeノードでは、NovaがVMを作成するため、`virtinst`と`libosinfo-bin`は必須ではありませんが、トラブルシューティングやデバッグ時に便利です。
+
+**libvirtグループにユーザーを追加**（オプション）:
+
+```bash
+# 現在のユーザーをlibvirtグループに追加（再ログイン後に有効）
+sudo usermod -aG libvirt $USER
+```
+
+> **📌 注意**: この設定は、非rootユーザーでlibvirtを使用する場合に必要です。通常、Novaはroot権限で動作するため、必須ではありません。
+
+**インストール確認**:
+
+```bash
+# KVMモジュールの確認
+lsmod | grep kvm
+
+# libvirtのバージョン確認
+virsh version
+```
+
+**期待される出力例**:
+
+```bash
+# lsmod | grep kvm
+kvm_intel             245760  0
+kvm                   901120  1 kvm_intel
+
+# virsh version
+Compiled against library: libvirt 8.0.0
+Using library: libvirt 8.0.0
+Using API: QEMU 8.0.0
+Running hypervisor: QEMU 8.0.0
+```
+
+---
+
+### Novaパッケージのインストール
+
+**Nova Computeパッケージのインストール**:
+
+```bash
+sudo apt install -y nova-compute nova-compute-kvm
+```
+
+> **📌 注意**: `nova-compute-kvm`は、KVMハイパーバイザーを使用する場合に必要なパッケージです。このパッケージには、NovaがKVMを使用して仮想マシンを作成・管理するために必要なドライバーやツールが含まれています。
 
 **インストール確認**:
 
@@ -1076,6 +1180,14 @@ dpkg -l | grep nova
 ---
 
 ### Nova設定ファイルの編集
+
+> **📌 注意**: Server Worldのepoxy2ページ（[Compute ノードを他ホストに分離して構成する](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy2&f=3)）の設定に完全に合わせています。`nova-compute`パッケージをインストールすると、デフォルトの設定ファイル（`/etc/nova/nova.conf`）が作成されますが、分離されたComputeノードでは以下の設定が必要です。
+>
+> **📌 `insecure`設定について**:
+>
+> - Server Worldの設定では`insecure = false`になっていますが、コメントで「Apache2 Keystone で自己署名の証明書を使用の場合は [true]」と記載されています
+> - このガイドでは自己署名証明書を使用しているため、`insecure = true`に変更することを推奨します
+> - ただし、Server Worldの設定に完全に合わせる場合は`insecure = false`のままでも動作します（証明書検証エラーが発生する可能性があります）
 
 **設定ファイルのバックアップ**:
 
@@ -1093,31 +1205,31 @@ sudo vim /etc/nova/nova.conf
 
 ```ini
 [DEFAULT]
-# ログとデバッグ設定
-log_dir = /var/log/nova
 state_path = /var/lib/nova
+enabled_apis = osapi_compute,metadata
+log_dir = /var/log/nova
+# RabbitMQサーバー接続情報
+transport_url = rabbit://openstack:password@controller:5672
 
-# メッセージキュー設定
-transport_url = rabbit://openstack:RABBIT_PASS@controller:5672
+[api]
+auth_strategy = keystone
 
-# マイグレーション設定
-my_ip = 172.16.100.31
-use_neutron = true
-firewall_driver = nova.virt.firewall.NoopFirewallDriver
+[vnc]
+enabled = True
+# インスタンスがリスンするIPアドレス
+# ノードのIPアドレスを指定
+server_listen = 172.16.100.31
+server_proxyclient_address = 172.16.100.31
+novncproxy_base_url = https://controller:6080/vnc_auto.html
 
-# VNC設定
-vncserver_listen = 0.0.0.0
-vncserver_proxyclient_address = 172.16.100.31
-novncproxy_base_url = http://controller:6080/vnc_auto.html
-
-# Glance設定
+# Glanceサーバーを指定
 [glance]
-api_servers = http://controller:9292
+api_servers = https://controller:9292
 
-# データベース設定（コンピュートノードは直接DBに接続しない）
-# nova-conductor経由でアクセス
+[oslo_concurrency]
+lock_path = $state_path/tmp
 
-# Keystone認証設定
+# Keystoneサーバー接続情報
 [keystone_authtoken]
 www_authenticate_uri = https://controller:5000
 auth_url = https://controller:5000
@@ -1128,33 +1240,80 @@ user_domain_name = Default
 project_name = service
 username = nova
 password = NOVA_PASS
+# Apache2 Keystone で自己署名の証明書を使用の場合は [true]
 insecure = true
 
-# サービス設定
-[oslo_concurrency]
-lock_path = /var/lib/nova/tmp
+[placement]
+auth_url = https://controller:5000
+os_region_name = RegionOne
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = placement
+password = PLACEMENT_PASS
+# Apache2 Keystone で自己署名の証明書を使用の場合は [true]
+insecure = true
 
-# ハイパーバイザー設定
-[libvirt]
-virt_type = kvm
+[wsgi]
+api_paste_config = /etc/nova/api-paste.ini
+
+[oslo_policy]
+enforce_new_defaults = true
 ```
+
+**設定ファイルのパーミッション設定**:
+
+```bash
+sudo chmod 640 /etc/nova/nova.conf
+sudo chgrp nova /etc/nova/nova.conf
+```
+
+> **📌 セキュリティ**: 設定ファイルにはパスワードが含まれているため、適切なパーミッションを設定します。
 
 > **📌 設定項目の説明**:
 >
-> - **my_ip**: コンピュートノードの管理ネットワークIPアドレス（172.16.100.31）
-> - **vncserver_proxyclient_address**: コンピュートノードの管理ネットワークIPアドレス
-> - **virt_type**: ハイパーバイザーのタイプ（kvm、qemu、xen等）
-> - **use_neutron**: Neutronを使用する（Phase 6で設定）
+> - **enabled_apis**: 有効にするAPI（osapi_compute、metadata）
+> - **server_listen**: インスタンスがリスンするIPアドレス（ノードのIPアドレスを指定）
+> - **server_proxyclient_address**: VNCプロキシクライアントのアドレス（コンピュートノードの管理ネットワークIP）
+> - **novncproxy_base_url**: VNCコンソールへのアクセスURL（コントローラノード経由）
+> - **placement**: Placementサービスへの接続設定（リソース管理に必要）
+> - **lock_path**: `$state_path/tmp`を使用（変数展開により`/var/lib/nova/tmp`になる）
 
 > **📌 重要な設定項目**:
 >
-> - **my_ip**: コンピュートノードの管理ネットワークIP（172.16.100.31）を設定
+> - **enabled_apis**: Computeノードで有効にするAPIを指定（osapi_compute、metadata）
 > - **transport_url**: RabbitMQへの接続（Phase 2で設定）
-> - **virt_type = kvm**: KVMハイパーバイザーを使用（入れ子仮想化が有効になっている必要があります）
+> - **server_listen / server_proxyclient_address**: 分離されたComputeノードでは、これらのアドレスがコントローラノードからアクセス可能である必要があります
+> - **placement**: Placementサービスへの接続設定が必須です。これがないと、Computeノードが正しく登録されません
 
 ---
 
 ### libvirt / KVMの設定確認
+
+> **📌 注意**: KVMハイパーバイザーのインストール後、libvirtサービスが正常に起動していることを確認します。
+
+**libvirtサービスの起動と有効化**:
+
+```bash
+# libvirtサービスの有効化と起動
+sudo systemctl enable libvirtd
+sudo systemctl start libvirtd
+```
+
+**libvirtサービスの状態確認**:
+
+```bash
+sudo systemctl status libvirtd
+```
+
+**期待される出力**:
+
+```bash
+● libvirtd.service - Virtualization daemon
+     Loaded: loaded (/lib/systemd/system/libvirtd.service; enabled; vendor preset: enabled)
+     Active: active (running) since ...
+```
 
 **KVMの確認**:
 
@@ -1186,32 +1345,27 @@ egrep -c '(vmx|svm)' /proc/cpuinfo
 # 1以上が返ってくればOK（0の場合は仮想化支援機能が無効）
 ```
 
-**libvirtサービスの確認**:
-
-```bash
-sudo systemctl status libvirtd
-sudo systemctl enable libvirtd
-sudo systemctl start libvirtd
-```
-
-**libvirtの設定確認**:
+**libvirtのバージョン確認**:
 
 ```bash
 # libvirtのバージョン確認
 virsh version
-
-# 期待される出力例:
-# Compiled against library: libvirt 8.0.0
-# Using library: libvirt 8.0.0
-# Using API: QEMU 8.0.0
-# Running hypervisor: QEMU 8.0.0
 ```
 
-> **📌 トラブルシューティング**:
->
-> - KVMモジュールが読み込まれていない場合: `sudo modprobe kvm` を実行
-> - 仮想化支援機能が無効の場合: VirtualBoxの設定で「Nested VT-x/AMD-V」を有効化（Phase 1を参照）
-> - libvirtが起動しない場合: ログを確認（`sudo journalctl -u libvirtd -n 50`）
+**期待される出力例**:
+
+```bash
+Compiled against library: libvirt 8.0.0
+Using library: libvirt 8.0.0
+Using API: QEMU 8.0.0
+Running hypervisor: QEMU 8.0.0
+```
+
+**📌 トラブルシューティング**:
+
+- KVMモジュールが読み込まれていない場合: `sudo modprobe kvm` を実行
+- 仮想化支援機能が無効の場合: VirtualBoxの設定で「Nested VT-x/AMD-V」を有効化（Phase 1を参照）
+- libvirtが起動しない場合: ログを確認（`sudo journalctl -u libvirtd -n 50`）
 
 ---
 
@@ -1241,11 +1395,43 @@ sudo systemctl status nova-compute
 **ログの確認**:
 
 ```bash
-# nova-computeサービスのログ
-sudo journalctl -u nova-compute -n 50
+# nova-computeサービスのログ（systemd）
+sudo journalctl -u nova-compute -n 50 --no-pager
+
+# より詳細なエラーログを確認
+sudo tail -100 /var/log/nova/nova-compute.log
 ```
 
+**エラーが表示される場合の確認ポイント**:
+
+1. **設定ファイルの構文エラー**:
+
+   ```bash
+   # 設定ファイルの構文チェック（PythonのConfigParserを使用）
+   python3 -c "import configparser; c = configparser.ConfigParser(); c.read('/etc/nova/nova.conf'); print('構文チェック: OK')"
+   ```
+
+   > **📌 注意**: このコマンドは基本的なINI形式の構文チェックのみを行います。実際の設定値の妥当性は、サービス起動時のログで確認してください。
+
+2. **必須設定項目の確認**:
+
+   ```bash
+   # 必須設定項目が含まれているか確認
+   sudo grep -E "^enabled_apis|^\[placement\]|^\[keystone_authtoken\]|^\[vnc\]" /etc/nova/nova.conf
+   ```
+
+3. **よくあるエラー**:
+   - `enabled_apis`が設定されていない: `enabled_apis = osapi_compute,metadata`を追加
+   - **RabbitMQ認証エラー**: `amqp.exceptions.AccessRefused: (403) ACCESS_REFUSED`が表示される場合、`transport_url`のパスワードが間違っているか、RabbitMQ側でユーザーが正しく設定されていません（下記の「問題4: RabbitMQ認証エラー」を参照）
+   - Placementサービスへの接続エラー: `[placement]`セクションの設定を確認
+   - Keystone認証エラー: `[keystone_authtoken]`セクションの設定を確認
+   - VNC設定エラー: `[vnc]`セクションの設定を確認
+
 エラーがないことを確認します。
+
+> **📌 注意**:
+>
+> - Server Worldのガイド（<https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy2&f=3>）に従い、`my_ip`、`use_neutron`、`firewall_driver`、`[libvirt]`セクションは含まれていません。これらの設定は、Novaがデフォルト値または自動検出を使用します。
 
 ---
 
@@ -1264,6 +1450,25 @@ vagrant ssh controller
 source ~/admin-openrc
 ```
 
+**コンピュートノードのディスカバリー**:
+
+分離されたComputeノードの場合、コントローラノードで明示的にコンピュートノードをディスカバリーする必要があります：
+
+```bash
+# コンピュートノードのディスカバリー
+sudo su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts"
+```
+
+**期待される出力例**:
+
+```bash
+Found 1 new cell mappings.
+Synchronizing cell0 mapping.
+Getting cell mappings for cell0 from the database...
+```
+
+> **📌 重要**: 分離されたComputeノードの場合、`nova-manage cell_v2 discover_hosts`コマンドを実行して、コンピュートノードを明示的にディスカバリーする必要があります。このコマンドは、コントローラノードで実行してください。
+
 **コンピュートサービス一覧の確認**:
 
 ```bash
@@ -1276,9 +1481,13 @@ openstack compute service list
 +----+----------------+------------+----------+---------+-------+----------------------------+
 | ID | Binary         | Host       | Zone     | Status  | State | Updated At                 |
 +----+----------------+------------+----------+---------+-------+----------------------------+
+| X  | nova-scheduler | controller | internal | enabled | up    | 2024-XX-XXTXX:XX:XX.000000 |
+| X  | nova-conductor | controller | internal | enabled | up    | 2024-XX-XXTXX:XX:XX.000000 |
 | X  | nova-compute   | compute1   | nova     | enabled | up    | 2024-XX-XXTXX:XX:XX.000000 |
 +----+----------------+------------+----------+---------+-------+----------------------------+
 ```
+
+> **📌 注意**: コントローラノードのNovaサービス（nova-scheduler、nova-conductor）とコンピュートノードのnova-computeサービスが表示されます。
 
 **ハイパーバイザー一覧の確認**:
 
@@ -1327,13 +1536,13 @@ openstack hypervisor show compute1
 +----------------------+------------------------------------------------------+
 ```
 
-> **📌 確認ポイント**:
->
-> - **Status**: `enabled` になっていること
-> - **State**: `up` になっていること
-> - **Hypervisor Type**: `QEMU` または `KVM` になっていること
-> - **vcpus**: コンピュートノードのCPUコア数が表示されていること
-> - **memory_mb**: コンピュートノードのメモリ容量が表示されていること
+**📌 確認ポイント**:
+
+- **Status**: `enabled` になっていること
+- **State**: `up` になっていること
+- **Hypervisor Type**: `QEMU` または `KVM` になっていること
+- **vcpus**: コンピュートノードのCPUコア数が表示されていること
+- **memory_mb**: コンピュートノードのメモリ容量が表示されていること
 
 ---
 
@@ -1473,8 +1682,10 @@ openstack hypervisor list
 # Flavorの確認
 openstack flavor list
 
-# Placementサービスの状態確認（コントローラ）
-sudo systemctl status placement-api
+# Placement APIの状態確認（コントローラ）
+# Placement APIはApacheで動作するため、apache2サービスの状態を確認
+sudo systemctl status apache2
+sudo ss -tlnp | grep :8778
 
 # Novaサービスの状態確認（コントローラ）
 sudo systemctl status nova-api nova-conductor nova-scheduler nova-novncproxy
@@ -1649,8 +1860,8 @@ sudo tail -50 /var/log/nova/nova-conductor.log
 1. **Placement APIサービス（Apache）が起動しているか確認**:
 
    ```bash
+   # Placement APIはApacheのWSGIアプリケーションとして動作
    sudo systemctl status apache2
-   sudo systemctl status placement-api
    ```
 
 2. **ポート8778がリスニングしているか確認**:
@@ -1736,31 +1947,83 @@ sudo tail -50 /var/log/nova/nova-conductor.log
 ```bash
 openstack compute service list
 # コンピュートノードが表示されない
+
+# または、nova-manage cell_v2 discover_hostsを実行しても何も表示されない
+sudo su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts"
+# 出力がない、またはエラーが表示される
 ```
 
 **解決策**:
 
-1. コンピュートノードでnova-computeサービスが起動しているか確認:
+1. **設定ファイルに`[placement]`セクションが含まれているか確認**:
+
+   ```bash
+   # コンピュートノードで確認
+   vagrant ssh compute1
+   sudo grep -A 10 "^\[placement\]" /etc/nova/nova.conf
+   ```
+
+   **`[placement]`セクションが不足している場合**:
+
+   ```bash
+   # 設定ファイルを編集
+   sudo vim /etc/nova/nova.conf
+   ```
+
+   以下のセクションを追加:
+
+   ```ini
+   [placement]
+   auth_url = https://controller:5000
+   os_region_name = RegionOne
+   auth_type = password
+   project_domain_name = Default
+   user_domain_name = Default
+   project_name = service
+   username = placement
+   password = PLACEMENT_PASS
+   insecure = true
+   ```
+
+   **設定ファイルを修正した後、nova-computeサービスを再起動**:
+
+   ```bash
+   sudo systemctl restart nova-compute
+   ```
+
+2. **設定ファイルに`enabled_apis`が含まれているか確認**:
+
+   ```bash
+   sudo grep enabled_apis /etc/nova/nova.conf
+   # enabled_apis = osapi_compute,metadata が表示されることを確認
+   ```
+
+   不足している場合は追加:
+
+   ```ini
+   [DEFAULT]
+   enabled_apis = osapi_compute,metadata
+   ```
+
+3. **コンピュートノードでnova-computeサービスが起動しているか確認**:
 
    ```bash
    vagrant ssh compute1
    sudo systemctl status nova-compute
    ```
 
-2. nova-computeサービスのログを確認:
+4. **nova-computeサービスのログを確認**:
 
    ```bash
    sudo journalctl -u nova-compute -n 50
    ```
 
-3. RabbitMQへの接続を確認:
+   **よくあるエラー**:
+   - Placementサービスへの接続エラー: `[placement]`セクションの設定を確認
+   - Keystone認証エラー: `[keystone_authtoken]`セクションの設定を確認
+   - RabbitMQ接続エラー: `transport_url`の設定を確認
 
-   ```bash
-   # コンピュートノードから
-   sudo rabbitmqctl list_connections
-   ```
-
-4. コントローラノードとの通信を確認:
+5. **RabbitMQへの接続を確認**:
 
    ```bash
    # コンピュートノードから
@@ -1768,16 +2031,126 @@ openstack compute service list
    telnet controller 5672  # RabbitMQ
    ```
 
-5. 設定ファイルの`my_ip`が正しいか確認:
+6. **コントローラノードとの通信を確認**:
 
    ```bash
-   sudo grep my_ip /etc/nova/nova.conf
-   # 172.16.100.31 になっていることを確認
+   # コンピュートノードから
+   ping -c 3 controller
+   curl -k https://controller:5000/v3  # Keystone
+   curl -k https://controller:8778  # Placement
+   ```
+
+7. **コントローラノードで再度ディスカバリーを実行**:
+
+   ```bash
+   # コントローラノードで実行
+   vagrant ssh controller
+   source ~/admin-openrc
+   sudo su -s /bin/bash nova -c "nova-manage cell_v2 discover_hosts --verbose"
+   ```
+
+   **期待される出力**:
+
+   ```bash
+   Found 1 new cell mappings.
+   Synchronizing cell0 mapping.
+   Getting cell mappings for cell0 from the database...
    ```
 
 ---
 
-### 問題4: KVMが有効になっていない
+### 問題4: RabbitMQ認証エラー
+
+**症状**:
+
+```bash
+# nova-computeサービスのログに以下のエラーが表示される
+amqp.exceptions.AccessRefused: (0, 0): (403) ACCESS_REFUSED - Login was refused using authentication mechanism AMQPLAIN. For details see the broker logfile.
+```
+
+**原因**:
+
+- `nova.conf`の`transport_url`で指定されているRabbitMQのパスワードが間違っている
+- RabbitMQ側で`openstack`ユーザーが正しく設定されていない
+- RabbitMQ側でユーザーの権限が正しく設定されていない
+
+**解決方法**:
+
+1. **コントローラノードでRabbitMQユーザーを確認**:
+
+   ```bash
+   vagrant ssh controller
+   sudo rabbitmqctl list_users
+   ```
+
+   **期待される出力**:
+
+   ```bash
+   Listing users ...
+   user tags
+   guest [administrator]
+   openstack [administrator]
+   ```
+
+2. **RabbitMQユーザーが存在しない場合、作成する**:
+
+   ```bash
+   # コントローラノードで実行
+   # パスワードは実際の値に置き換えてください（例: rabbitmq123）
+   sudo rabbitmqctl add_user openstack RABBIT_PASS
+   sudo rabbitmqctl set_user_tags openstack administrator
+   sudo rabbitmqctl set_permissions openstack ".*" ".*" ".*"
+   ```
+
+3. **Computeノードの`nova.conf`の`transport_url`を確認**:
+
+   ```bash
+   vagrant ssh compute1
+   sudo grep transport_url /etc/nova/nova.conf
+   ```
+
+   **正しい形式の例**:
+
+   ```ini
+   transport_url = rabbit://openstack:RABBIT_PASS@controller:5672
+   ```
+
+   > **📌 注意**: `RABBIT_PASS`は実際のRabbitMQパスワードに置き換えてください。コントローラノードで設定したパスワードと一致している必要があります。
+
+4. **パスワードが間違っている場合、修正する**:
+
+   ```bash
+   # Computeノードで実行
+   sudo vim /etc/nova/nova.conf
+   # transport_urlのパスワード部分を修正
+   ```
+
+5. **設定ファイルを修正した後、サービスを再起動**:
+
+   ```bash
+   sudo systemctl restart nova-compute
+   sudo journalctl -u nova-compute -n 50 --no-pager
+   ```
+
+6. **RabbitMQへの接続をテスト**:
+
+   ```bash
+   # Computeノードから
+   ping -c 3 controller
+   telnet controller 5672
+   # Ctrl+Cで終了
+   ```
+
+7. **RabbitMQのログを確認**（必要に応じて）:
+
+   ```bash
+   # コントローラノードで実行
+   sudo tail -50 /var/log/rabbitmq/rabbit@*.log
+   ```
+
+---
+
+### 問題5: KVMが有効になっていない
 
 **症状**:
 
@@ -1819,7 +2192,7 @@ lsmod | grep kvm
 
 ---
 
-### 問題5: Cellの登録エラー
+### 問題6: Cellの登録エラー
 
 **症状**:
 
@@ -1886,8 +2259,6 @@ Phase 5が完了したら、Phase 6（Neutron - ネットワークサービス�
 Phase 5の学習が完了したら、以下のテンプレートに記録してください：
 
 ```markdown
-## Phase 5: Nova（コンピュートサービス）
-
 ### 実施日
 YYYY/MM/DD
 

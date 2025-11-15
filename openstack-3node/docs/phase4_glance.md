@@ -1,14 +1,14 @@
 # Phase 4: Glance（イメージサービス）
 
-## 📋 目次
+## 目次
 
 - [Phase 4: Glance（イメージサービス）](#phase-4-glanceイメージサービス)
-  - [📋 目次](#-目次)
-  - [概要](#概要)
+  - [目次](#目次)
+  - [📋 概要](#-概要)
     - [Glanceの主な機能](#glanceの主な機能)
-    - [Glanceのアーキテクチャ](#glanceのアーキテクチャ)
-  - [前提条件](#前提条件)
-  - [Phase 4の構成図](#phase-4の構成図)
+    - [Glanceの主要コンポーネント](#glanceの主要コンポーネント)
+  - [🎯 前提条件](#-前提条件)
+  - [📐 Glanceのアーキテクチャ](#-glanceのアーキテクチャ)
     - [Step 4-1の詳細フロー](#step-4-1の詳細フロー)
   - [📝 Step 4-1: Glanceのインストール](#-step-4-1-glanceのインストール)
     - [データベースの作成](#データベースの作成)
@@ -16,7 +16,7 @@
     - [Glanceパッケージのインストール](#glanceパッケージのインストール)
     - [Glance設定ファイルの編集](#glance設定ファイルの編集)
     - [データベースの同期](#データベースの同期)
-    - [Nginx HTTP Serverの設定](#nginx-http-serverの設定)
+    - [Nginx HTTPS Serverの設定](#nginx-https-serverの設定)
     - [Glanceサービスの起動](#glanceサービスの起動)
     - [Glanceの動作確認](#glanceの動作確認)
   - [📝 Step 4-2: テストイメージのアップロード](#-step-4-2-テストイメージのアップロード)
@@ -36,7 +36,7 @@
 
 ---
 
-## 概要
+## 📋 概要
 
 **Phase 4の目的**: VMイメージの管理システムを構築する
 
@@ -51,7 +51,7 @@
 | **イメージメタデータ管理** | イメージの情報管理                                 |
 | **イメージストレージ**     | ファイルシステムまたはオブジェクトストレージに保存 |
 
-### Glanceのアーキテクチャ
+### Glanceの主要コンポーネント
 
 ```mermaid
 graph TB
@@ -70,7 +70,7 @@ graph TB
     style Storage fill:#e1bee7
 ```
 
-**主要コンポーネント**:
+**コンポーネントの説明**:
 
 - **glance-api**: REST APIを提供するサーバー
 - **Database**: イメージのメタデータを保存
@@ -78,7 +78,7 @@ graph TB
 
 ---
 
-## 前提条件
+## 🎯 前提条件
 
 Phase 4を開始する前に、以下が完了していることを確認してください：
 
@@ -99,7 +99,7 @@ openstack token issue
 
 ---
 
-## Phase 4の構成図
+## 📐 Glanceのアーキテクチャ
 
 ```mermaid
 graph LR
@@ -163,54 +163,41 @@ SELECT host, user FROM mysql.user WHERE user = 'glance';
 EXIT;
 ```
 
-> **🔐 セキュリティノート**:
->
-> - 本番環境では `GLANCE_DBPASS` をより強力なパスワードに変更してください
-> - パスワードは環境変数やシークレット管理システムで管理することを推奨します
->
-> **📌 使用するパスワード**:
->
-> - `GLANCE_DBPASS`: Glanceデータベース用（任意の値）
-> - `GLANCE_PASS`: GlanceユーザーのKeystoneパスワード（任意の値）
-> - `RABBIT_PASS`: RabbitMQのopenstackユーザーパスワード（Phase 2で設定したもの）
+**🔐 セキュリティノート**:
+
+- 本番環境では `GLANCE_DBPASS` をより強力なパスワードに変更してください
+- パスワードは環境変数やシークレット管理システムで管理することを推奨します
+
+**📌 使用するパスワード**:
+
+- `GLANCE_DBPASS`: Glanceデータベース用（任意の値）
+- `GLANCE_PASS`: GlanceユーザーのKeystoneパスワード（任意の値）
+- `RABBIT_PASS`: RabbitMQのopenstackユーザーパスワード（Phase 2で設定したもの）
 
 ---
 
 ### Keystoneでのサービス登録
 
-**admin-openrcファイルを読み込む**:
-
 ```bash
+# admin-openrcファイルを読み込む:
 source ~/admin-openrc
-```
 
-**glanceユーザーの作成**:
-
-```bash
+# glanceユーザーの作成:
 openstack user create --domain default --project service --password GLANCE_PASS glance
-```
 
-> **📌 serviceプロジェクトについて**: Phase 3で作成した `service` プロジェクトを使用します。
-
-**glanceユーザーにadminロールを付与**:
-
-```bash
+# glanceユーザーにadminロールを付与:
 openstack role add --project service --user glance admin
-```
 
-**glanceサービスの作成**:
-
-```bash
+# glanceサービスの作成:
 openstack service create --name glance --description "OpenStack Image service" image
+
+# エンドポイントの作成:
+openstack endpoint create --region RegionOne image public https://controller:9292
+openstack endpoint create --region RegionOne image internal https://controller:9292
+openstack endpoint create --region RegionOne image admin https://controller:9292
 ```
 
-**エンドポイントの作成**:
-
-```bash
-openstack endpoint create --region RegionOne image public http://controller:9292
-openstack endpoint create --region RegionOne image internal http://controller:9292
-openstack endpoint create --region RegionOne image admin http://controller:9292
-```
+**📌 serviceプロジェクトについて**: Phase 3で作成した `service` プロジェクトを使用します。
 
 **確認**:
 
@@ -235,9 +222,9 @@ openstack endpoint list --service image
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
 | ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                       |
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
-| ...                              | RegionOne | glance       | image        | True    | public    | http://controller:9292    |
-| ...                              | RegionOne | glance       | image        | True    | internal  | http://controller:9292    |
-| ...                              | RegionOne | glance       | image        | True    | admin     | http://controller:9292    |
+| ...                              | RegionOne | glance       | image        | True    | public    | https://controller:9292   |
+| ...                              | RegionOne | glance       | image        | True    | internal  | https://controller:9292   |
+| ...                              | RegionOne | glance       | image        | True    | admin     | https://controller:9292   |
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
 ```
 
@@ -278,7 +265,7 @@ sudo vi /etc/glance/glance-api.conf
 ```ini
 [DEFAULT]
 bind_host = 127.0.0.1
-transport_url = rabbit://openstack:RABBIT_PASS@controller:5672
+transport_url = rabbit://openstack:password@controller:5672
 enabled_backends = fs:file
 
 [glance_store]
@@ -309,22 +296,22 @@ flavor = keystone
 enforce_new_defaults = true
 ```
 
-> **📌 設定項目の説明**:
->
-> - **bind_host**: ローカルホストのみリスン（セキュリティ向上）
-> - **transport_url**: RabbitMQへの接続（Phase 2で設定したもの）
-> - **enabled_backends**: 使用するストレージバックエンド
-> - **[fs]**: ファイルシステムバックエンドの設定
-> - **insecure**: SSL証明書の検証（false=検証する）
-> - **enforce_new_defaults**: 新しいポリシーデフォルトを使用
+**📌 設定項目の説明**:
 
-> **📌 重要な設定項目**:
->
-> - **bind_host = 127.0.0.1**: セキュリティのためローカルのみリスン（Nginx経由でアクセス）
-> - **transport_url**: RabbitMQへの接続（Phase 2で設定）
-> - **enabled_backends**: 新しいバックエンド設定方式（複数バックエンド対応）
-> - **[fs]セクション**: ファイルシステムバックエンドの個別設定
-> - **insecure = false**: SSL証明書を検証する（本番環境推奨）
+- **bind_host**: ローカルホストのみリスン（セキュリティ向上）
+- **transport_url**: RabbitMQへの接続（Phase 2で設定したもの）
+- **enabled_backends**: 使用するストレージバックエンド
+- **[fs]**: ファイルシステムバックエンドの設定
+- **insecure**: SSL証明書の検証（false=検証する）
+- **enforce_new_defaults**: 新しいポリシーデフォルトを使用
+
+**📌 重要な設定項目**:
+
+- **bind_host = 127.0.0.1**: セキュリティのためローカルのみリスン（Nginx経由でアクセス）
+- **transport_url**: RabbitMQへの接続（Phase 2で設定）
+- **enabled_backends**: 新しいバックエンド設定方式（複数バックエンド対応）
+- **[fs]セクション**: ファイルシステムバックエンドの個別設定
+- **insecure = false**: SSL証明書を検証する（本番環境推奨）
 
 ---
 
@@ -336,11 +323,11 @@ enforce_new_defaults = true
 sudo su -s /bin/bash glance -c "glance-manage db_sync"
 ```
 
-> **📌 コマンド解説**: `glance-manage db_sync`
->
-> - **目的**: Glanceデータベースのスキーマを作成または更新します
-> - **動作**: データベース接続設定に基づいて、必要なテーブルを作成します
-> - **実行タイミング**: 初回インストール時、またはGlanceのバージョンアップ時に実行します
+**📌 コマンド解説**: `glance-manage db_sync`
+
+- **目的**: Glanceデータベースのスキーマを作成または更新します
+- **動作**: データベース接続設定に基づいて、必要なテーブルを作成します
+- **実行タイミング**: 初回インストール時、またはGlanceのバージョンアップ時に実行します
 
 **データベースにテーブルが作成されたことを確認**:
 
@@ -376,13 +363,16 @@ sudo mysql -u root -p glance -e "SHOW TABLES;"
 
 ---
 
-### Nginx HTTP Serverの設定
+### Nginx HTTPS Serverの設定
 
-GlanceはNginxをリバースプロキシとして使用し、`glance-api`サービスを起動します。Server Worldの手順に従って、Nginxを設定します。
+GlanceはNginxをリバースプロキシとして使用し、`glance-api`サービスを起動します。Keystoneと同様にHTTPSで通信するため、SSL証明書を使用してNginxを設定します。
 
-> **📌 参考**: [Server World - Glance設定](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=5)
->
-> **📌 注意**: Nginxパッケージは、Phase 2で既にインストールされています。未インストールの場合は、Phase 2の手順を参照してください。
+**📌 参考**: [Server World - Glance設定](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=5)
+
+**📌 注意**:
+
+- Nginxパッケージは、Phase 2で既にインストールされています。未インストールの場合は、Phase 2の手順を参照してください。
+- SSL証明書は、Phase 3のKeystone設定で作成したものを使用します（`/etc/ssl/certs/keystone/keystone-cert.pem`と`/etc/ssl/private/keystone/keystone-key.pem`）
 
 **Glance用のNginx設定ファイルの作成**:
 
@@ -398,8 +388,11 @@ upstream glance-api {
 }
 
 server {
-    listen 172.16.100.10:9292;
+    listen 172.16.100.10:9292 ssl;
     server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
 
     client_max_body_size 0;
     client_header_buffer_size 64k;
@@ -417,12 +410,14 @@ server {
 
 > **📌 注意**:
 >
-> - `listen 172.16.100.10:9292`: 管理ネットワークのIPアドレスでリスニング（ポート競合を回避）
+> - `listen 172.16.100.10:9292 ssl`: 管理ネットワークのIPアドレスでHTTPSリスニング（SSL終端）
+> - `ssl_certificate` / `ssl_certificate_key`: Keystoneで作成したSSL証明書を使用（Phase 3で作成）
 > - `client_max_body_size 0`: 大容量ファイル転送のため、リクエストボディサイズを無制限に設定
 > - `client_header_buffer_size 64k`: クライアントヘッダーバッファサイズ（OpenStackの長い認証トークンに対応）
 > - `large_client_header_buffers 4 64k`: 大きなクライアントヘッダー用のバッファ（4個、各64KB）
-> - `upstream glance-api`: glance-apiサービス（127.0.0.1:9292）へのプロキシ設定
-> - `proxy_set_header`: リバースプロキシで必要なヘッダーを設定
+> - `upstream glance-api`: glance-apiサービス（127.0.0.1:9292）へのプロキシ設定（バックエンドはHTTP）
+> - `proxy_pass http://`: バックエンド（glance-api）はHTTPで接続（SSL終端はNginxで行う）
+> - `proxy_set_header`: リバースプロキシで必要なHTTPヘッダーを設定
 
 **Nginx設定の構文チェック**:
 
@@ -512,7 +507,7 @@ LISTEN 0      511          127.0.0.1:9292        0.0.0.0:*    users:(("glance-ap
 Glance APIのバージョン情報を取得します：
 
 ```bash
-curl -s http://controller:9292/ | python3 -m json.tool
+curl -k -s https://controller:9292/ | python3 -m json.tool
 ```
 
 **期待される出力例**:
@@ -527,7 +522,7 @@ curl -s http://controller:9292/ | python3 -m json.tool
             "links": [
                 {
                     "rel": "self",
-                    "href": "http://controller:9292/v2/"
+                    "href": "https://controller:9292/v2/"
                 }
             ]
         }
@@ -582,9 +577,9 @@ openstack image list
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
 | ID                               | Region    | Service Name | Service Type | Enabled | Interface | URL                       |
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
-| ...                              | RegionOne | glance       | image        | True    | public    | http://controller:9292    |
-| ...                              | RegionOne | glance       | image        | True    | internal  | http://controller:9292    |
-| ...                              | RegionOne | glance       | image        | True    | admin     | http://controller:9292    |
+| ...                              | RegionOne | glance       | image        | True    | public    | https://controller:9292   |
+| ...                              | RegionOne | glance       | image        | True    | internal  | https://controller:9292   |
+| ...                              | RegionOne | glance       | image        | True    | admin     | https://controller:9292   |
 +----------------------------------+-----------+--------------+--------------+---------+-----------+---------------------------+
 
 # openstack image list
@@ -611,7 +606,7 @@ cd ~/images
 wget https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
 ```
 
-> **📌 イメージサイズ**: 約400-600MB程度です。ダウンロードに数分かかる場合があります。
+**📌 イメージサイズ**: 約400-600MB程度です。ダウンロードに数分かかる場合があります。
 
 **ファイルサイズの確認**:
 
@@ -705,7 +700,7 @@ openstack image show "Ubuntu-24.04"
 +------------------+------------------------------------------------------+
 ```
 
-> **📌 Statusについて**: `active` になっていればアップロード成功です。
+**📌 Statusについて**: `active` になっていればアップロード成功です。
 
 ---
 
@@ -784,7 +779,7 @@ total 500M
 - [ ] glance-apiサービスが正常に起動している
 - [ ] ポート9292がNginx経由でリスニングしている（外部アクセス）
 - [ ] glance-apiサービスが127.0.0.1:9292でリスニングしている（Nginxからのプロキシ）
-- [ ] `curl http://controller:9292/` でJSONレスポンスが返ってくる
+- [ ] `curl -k https://controller:9292/` でJSONレスポンスが返ってくる
 - [ ] `openstack image list` でイメージリストが表示される
 - [ ] Ubuntu Cloud Imageがアップロードされ、statusが `active` になっている
 - [ ] `/var/lib/glance/images/` にイメージファイルが保存されている
@@ -813,7 +808,7 @@ sudo systemctl status glance-api
 sudo ss -tlnp | grep :9292
 
 # Glance APIの直接確認
-curl -s http://controller:9292/ | python3 -m json.tool
+curl -k -s https://controller:9292/ | python3 -m json.tool
 
 # イメージファイルの確認
 sudo ls -lh /var/lib/glance/images/
@@ -831,7 +826,7 @@ sudo ls -lh /var/lib/glance/images/
 
 ```bash
 openstack image list
-# Failed to contact the endpoint at http://controller:9292 for discovery.
+# Failed to contact the endpoint at https://controller:9292 for discovery.
 # The image service for : exists but does not have any supported versions.
 ```
 
@@ -891,7 +886,7 @@ openstack image list
 8. Glance APIの直接確認:
 
    ```bash
-   curl -s http://controller:9292/ | python3 -m json.tool
+   curl -k -s https://controller:9292/ | python3 -m json.tool
    ```
 
    JSONレスポンスが返ってくることを確認します。
@@ -952,9 +947,9 @@ openstack image list
 
    ```bash
    source ~/admin-openrc
-   openstack endpoint create --region RegionOne image public http://controller:9292
-   openstack endpoint create --region RegionOne image internal http://controller:9292
-   openstack endpoint create --region RegionOne image admin http://controller:9292
+   openstack endpoint create --region RegionOne image public https://controller:9292
+   openstack endpoint create --region RegionOne image internal https://controller:9292
+   openstack endpoint create --region RegionOne image admin https://controller:9292
    ```
 
 ---
@@ -1006,8 +1001,6 @@ Phase 4が完了したら、Phase 5（Nova - コンピュートサービス）�
 Phase 4の学習が完了したら、以下のテンプレートに記録してください：
 
 ```markdown
-## Phase 4: Glance（イメージサービス）
-
 ### 実施日
 YYYY/MM/DD
 

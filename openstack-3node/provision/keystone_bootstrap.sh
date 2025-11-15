@@ -30,6 +30,8 @@ export OS_PASSWORD=${ADMIN_PASS}
 export OS_AUTH_URL=https://controller:5000/v3
 export OS_IDENTITY_API_VERSION=3
 export OS_IMAGE_API_VERSION=2
+export OS_CACERT=/etc/ssl/certs/keystone/keystone-cert.pem
+export PS1='\[\033[01;32m\]\u@\h\[\033[00m\] \[\033[01;34m\]\W\[\033[00m\] \[\033[01;33m\](keystone)\[\033[00m\] $ '
 EOF
 chmod 600 ~/admin-openrc
 echo "✓ admin-openrcファイルを作成しました"
