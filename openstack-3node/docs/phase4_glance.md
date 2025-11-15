@@ -10,16 +10,15 @@
   - [🎯 前提条件](#-前提条件)
   - [📐 Glanceのアーキテクチャ](#-glanceのアーキテクチャ)
     - [Step 4-1の詳細フロー](#step-4-1の詳細フロー)
-  - [📝 Step 4-1: Glanceのインストール](#-step-4-1-glanceのインストール)
-    - [データベースの作成](#データベースの作成)
-    - [Keystoneでのサービス登録](#keystoneでのサービス登録)
-    - [Glanceパッケージのインストール](#glanceパッケージのインストール)
-    - [Glance設定ファイルの編集](#glance設定ファイルの編集)
+  - [📝 Step 4-1: Glanceデータベースの作成](#-step-4-1-glanceデータベースの作成)
+  - [📝 Step 4-2: Keystoneでのサービス登録](#-step-4-2-keystoneでのサービス登録)
+  - [📝 Step 4-3: Glanceパッケージのインストール](#-step-4-3-glanceパッケージのインストール)
+  - [📝 Step 4-4: Glance設定ファイルの編集](#-step-4-4-glance設定ファイルの編集)
     - [データベースの同期](#データベースの同期)
-    - [Nginx HTTPS Serverの設定](#nginx-https-serverの設定)
-    - [Glanceサービスの起動](#glanceサービスの起動)
-    - [Glanceの動作確認](#glanceの動作確認)
-  - [📝 Step 4-2: テストイメージのアップロード](#-step-4-2-テストイメージのアップロード)
+  - [📝 Step 4-6: Nginx HTTPS Serverの設定](#-step-4-6-nginx-https-serverの設定)
+  - [📝 Step 4-7: Glanceサービスの起動](#-step-4-7-glanceサービスの起動)
+  - [📝 Step 4-8: Glanceの動作確認](#-step-4-8-glanceの動作確認)
+  - [📝 Step 4-9: テストイメージのアップロード](#-step-4-9-テストイメージのアップロード)
     - [Ubuntu Cloud Imageのダウンロード](#ubuntu-cloud-imageのダウンロード)
     - [Glanceへのイメージ登録](#glanceへのイメージ登録)
     - [軽量テストイメージ（Cirros）の追加（オプション）](#軽量テストイメージcirrosの追加オプション)
@@ -125,9 +124,11 @@ graph TB
 
 ---
 
-## 📝 Step 4-1: Glanceのインストール
+## 📝 Step 4-1: Glanceデータベースの作成
 
-### データベースの作成
+このStepでは、Glance用のデータベースとユーザーを作成します。
+
+**📌 プロビジョニングファイル**: `provision/glance_db.sh`
 
 **コントローラノードにSSH接続**:
 
@@ -176,7 +177,11 @@ EXIT;
 
 ---
 
-### Keystoneでのサービス登録
+## 📝 Step 4-2: Keystoneでのサービス登録
+
+このStepでは、GlanceサービスをKeystoneに登録します。
+
+**📌 プロビジョニングファイル**: `provision/glance_install.sh`（一部）
 
 ```bash
 # admin-openrcファイルを読み込む:
@@ -230,7 +235,11 @@ openstack endpoint list --service image
 
 ---
 
-### Glanceパッケージのインストール
+## 📝 Step 4-3: Glanceパッケージのインストール
+
+このStepでは、Glanceパッケージと必要な依存パッケージをインストールします。
+
+**📌 プロビジョニングファイル**: `provision/glance_install.sh`（一部）
 
 ```bash
 sudo apt update
@@ -246,7 +255,11 @@ dpkg -l | grep glance
 
 ---
 
-### Glance設定ファイルの編集
+## 📝 Step 4-4: Glance設定ファイルの編集
+
+このStepでは、Glanceの設定ファイルを編集します。
+
+**📌 プロビジョニングファイル**: `provision/glance_config.sh`（一部）
 
 **設定ファイルのバックアップ**:
 
@@ -363,7 +376,11 @@ sudo mysql -u root -p glance -e "SHOW TABLES;"
 
 ---
 
-### Nginx HTTPS Serverの設定
+## 📝 Step 4-6: Nginx HTTPS Serverの設定
+
+このStepでは、Glance APIをNginxでリバースプロキシするための設定を行います。
+
+**📌 プロビジョニングファイル**: `provision/glance_nginx.sh`
 
 GlanceはNginxをリバースプロキシとして使用し、`glance-api`サービスを起動します。Keystoneと同様にHTTPSで通信するため、SSL証明書を使用してNginxを設定します。
 
@@ -448,7 +465,11 @@ sudo systemctl reload nginx
 
 ---
 
-### Glanceサービスの起動
+## 📝 Step 4-7: Glanceサービスの起動
+
+このStepでは、Glanceサービスを起動します。
+
+**📌 プロビジョニングファイル**: `provision/glance_service.sh`
 
 **glance-apiサービスの起動**:
 
@@ -544,7 +565,9 @@ sudo tail -20 /var/log/nginx/access.log
 
 ---
 
-### Glanceの動作確認
+## 📝 Step 4-8: Glanceの動作確認
+
+このStepでは、Glanceが正常に動作していることを確認します。
 
 Controllerノードで実行します。
 
@@ -588,7 +611,11 @@ openstack image list
 
 ---
 
-## 📝 Step 4-2: テストイメージのアップロード
+## 📝 Step 4-9: テストイメージのアップロード
+
+このStepでは、テスト用のVMイメージをGlanceにアップロードします。
+
+**📌 プロビジョニングファイル**: `provision/glance_upload_image.sh`
 
 ### Ubuntu Cloud Imageのダウンロード
 
@@ -767,22 +794,22 @@ total 500M
 
 以下を確認してください：
 
-- [ ] glanceデータベースが作成されている
-- [ ] glanceユーザーがKeystoneに登録されている
-- [ ] glanceサービスがKeystoneに登録されている
-- [ ] glanceエンドポイントが作成されている（public, internal, admin）
-- [ ] Glance設定ファイル（`/etc/glance/glance-api.conf`）が適切に設定されている
-- [ ] データベーススキーマが同期されている（`glance-manage db_sync`）
-- [ ] Nginx設定ファイル（`/etc/nginx/sites-available/glance-api.conf`）が作成されている
-- [ ] Glanceサイトが有効化されている（シンボリックリンクが作成されている）
-- [ ] Nginxサービスが正常に起動している
-- [ ] glance-apiサービスが正常に起動している
-- [ ] ポート9292がNginx経由でリスニングしている（外部アクセス）
-- [ ] glance-apiサービスが127.0.0.1:9292でリスニングしている（Nginxからのプロキシ）
-- [ ] `curl -k https://controller:9292/` でJSONレスポンスが返ってくる
-- [ ] `openstack image list` でイメージリストが表示される
-- [ ] Ubuntu Cloud Imageがアップロードされ、statusが `active` になっている
-- [ ] `/var/lib/glance/images/` にイメージファイルが保存されている
+- [ ] Step 4-1: glanceデータベースが作成されている
+- [ ] Step 4-2: glanceユーザーがKeystoneに登録されている
+- [ ] Step 4-2: glanceサービスがKeystoneに登録されている
+- [ ] Step 4-2: glanceエンドポイントが作成されている（public, internal, admin）
+- [ ] Step 4-3: Glanceパッケージがインストールされている
+- [ ] Step 4-4: Glance設定ファイルが適切に設定されている
+- [ ] Step 4-5: データベーススキーマが同期されている
+- [ ] Step 4-6: Nginx設定ファイルが作成されている
+- [ ] Step 4-6: Glanceサイトが有効化されている
+- [ ] Step 4-7: Nginxサービスが正常に起動している
+- [ ] Step 4-7: glance-apiサービスが正常に起動している
+- [ ] Step 4-8: ポート9292がNginx経由でリスニングしている
+- [ ] Step 4-8: `curl -k https://controller:9292/` でJSONレスポンスが返ってくる
+- [ ] Step 4-8: `openstack image list` でイメージリストが表示される
+- [ ] Step 4-9: Ubuntu Cloud Imageがアップロードされ、statusが `active` になっている
+- [ ] Step 4-9: `/var/lib/glance/images/` にイメージファイルが保存されている
 
 **確認コマンド例**:
 
@@ -1005,8 +1032,15 @@ Phase 4の学習が完了したら、以下のテンプレートに記録して�
 YYYY/MM/DD
 
 ### 完了したStep
-- [x] Step 4-1: Glanceのインストール
-- [x] Step 4-2: テストイメージのアップロード
+- [x] Step 4-1: Glanceデータベースの作成
+- [x] Step 4-2: Keystoneでのサービス登録
+- [x] Step 4-3: Glanceパッケージのインストール
+- [x] Step 4-4: Glance設定ファイルの編集
+- [x] Step 4-5: データベースの同期
+- [x] Step 4-6: Nginx HTTPS Serverの設定
+- [x] Step 4-7: Glanceサービスの起動
+- [x] Step 4-8: Glanceの動作確認
+- [x] Step 4-9: テストイメージのアップロード
 
 ### 使用した方法
 - [x] Command

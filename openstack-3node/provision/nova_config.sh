@@ -43,12 +43,12 @@ firewall_driver = nova.virt.firewall.NoopFirewallDriver
 # VNC設定
 vncserver_listen = 0.0.0.0
 vncserver_proxyclient_address = 172.16.100.10
-novncproxy_base_url = http://controller:6080/vnc_auto.html
+novncproxy_base_url = https://controller:6080/vnc_auto.html
 novncproxy_host = 127.0.0.1
 novncproxy_port = 6080
 
 [glance]
-api_servers = http://controller:9292
+api_servers = https://controller:9292
 
 [api_database]
 connection = mysql+pymysql://nova:${NOVA_DBPASS}@controller/nova_api

@@ -11,7 +11,7 @@ if dpkg -l | grep -q "^ii.*nova-compute"; then
     echo "✓ Nova Computeパッケージは既にインストールされています"
 else
     sudo apt update
-    sudo DEBIAN_FRONTEND=noninteractive apt install -y nova-compute
+    sudo DEBIAN_FRONTEND=noninteractive apt install -y nova-compute nova-compute-kvm
     echo "✓ Nova Computeパッケージをインストールしました"
 fi
 

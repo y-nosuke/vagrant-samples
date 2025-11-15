@@ -10,25 +10,27 @@
   - [🎯 前提条件](#-前提条件)
   - [📐 Novaのアーキテクチャ](#-novaのアーキテクチャ)
     - [Step 5-1の詳細フロー](#step-5-1の詳細フロー)
-  - [📝 Step 5-1: Novaコントローラ側のインストール](#-step-5-1-novaコントローラ側のインストール)
-    - [データベースの作成](#データベースの作成)
-    - [Keystoneでのサービス登録](#keystoneでのサービス登録)
-    - [Placementパッケージのインストール](#placementパッケージのインストール)
-    - [Novaパッケージのインストール](#novaパッケージのインストール)
-    - [Placement設定ファイルの編集](#placement設定ファイルの編集)
-    - [Apache2とNginxの設定](#apache2とnginxの設定)
-    - [Nova設定ファイルの編集](#nova設定ファイルの編集)
+  - [📝 Step 5-1: Novaデータベースの作成](#-step-5-1-novaデータベースの作成)
+  - [📝 Step 5-2: Keystoneでのサービス登録](#-step-5-2-keystoneでのサービス登録)
+  - [📝 Step 5-3: Placementパッケージのインストール](#-step-5-3-placementパッケージのインストール)
+  - [📝 Step 5-4: Novaパッケージのインストール](#-step-5-4-novaパッケージのインストール)
+  - [📝 Step 5-5: Placement設定ファイルの編集](#-step-5-5-placement設定ファイルの編集)
+  - [📝 Step 5-6: Placementデータベースの同期](#-step-5-6-placementデータベースの同期)
+  - [📝 Step 5-7: Apache2とNginxの設定（Placement用）](#-step-5-7-apache2とnginxの設定placement用)
+  - [📝 Step 5-8: Nova設定ファイルの編集](#-step-5-8-nova設定ファイルの編集)
     - [データベースの同期とCellの設定](#データベースの同期とcellの設定)
-    - [Novaサービスの起動](#novaサービスの起動)
-    - [Novaの動作確認](#novaの動作確認)
-  - [📝 Step 5-2: Novaコンピュート側のインストール](#-step-5-2-novaコンピュート側のインストール)
+  - [📝 Step 5-10: Nginx設定（Nova API、Metadata、novncproxy用）](#-step-5-10-nginx設定nova-apimetadatanovncproxy用)
+  - [📝 Step 5-11: Placementサービスの起動](#-step-5-11-placementサービスの起動)
+  - [📝 Step 5-12: Novaサービスの起動（コントローラ側）](#-step-5-12-novaサービスの起動コントローラ側)
+  - [📝 Step 5-13: Novaコントローラ側の動作確認](#-step-5-13-novaコントローラ側の動作確認)
+  - [📝 Step 5-14: KVMハイパーバイザーのインストール](#-step-5-14-kvmハイパーバイザーのインストール)
     - [KVMハイパーバイザーのインストール](#kvmハイパーバイザーのインストール)
-    - [Novaパッケージのインストール](#novaパッケージのインストール-1)
-    - [Nova設定ファイルの編集](#nova設定ファイルの編集-1)
-    - [libvirt / KVMの設定確認](#libvirt--kvmの設定確認)
-    - [Nova Computeサービスの起動](#nova-computeサービスの起動)
-    - [コントローラでのコンピュートノード登録確認](#コントローラでのコンピュートノード登録確認)
-  - [📝 Step 5-3: Flavorの作成](#-step-5-3-flavorの作成)
+  - [📝 Step 5-15: Nova Computeパッケージのインストール](#-step-5-15-nova-computeパッケージのインストール)
+  - [📝 Step 5-16: Nova Compute設定ファイルの編集](#-step-5-16-nova-compute設定ファイルの編集)
+  - [📝 Step 5-17: libvirt / KVMの設定確認](#-step-5-17-libvirt--kvmの設定確認)
+  - [📝 Step 5-18: Nova Computeサービスの起動](#-step-5-18-nova-computeサービスの起動)
+  - [📝 Step 5-19: コントローラでのコンピュートノード登録確認](#-step-5-19-コントローラでのコンピュートノード登録確認)
+  - [📝 Step 5-20: Flavorの作成](#-step-5-20-flavorの作成)
     - [標準Flavorの作成](#標準flavorの作成)
     - [Flavorの確認](#flavorの確認)
   - [✅ Phase 5 完了チェックリスト](#-phase-5-完了チェックリスト)
@@ -163,9 +165,11 @@ graph TB
 
 ---
 
-## 📝 Step 5-1: Novaコントローラ側のインストール
+## 📝 Step 5-1: Novaデータベースの作成
 
-### データベースの作成
+このStepでは、Nova用のデータベースとユーザーを作成します。
+
+**📌 プロビジョニングファイル**: `provision/nova_db.sh`
 
 **コントローラノードにSSH接続**:
 
@@ -247,7 +251,11 @@ EXIT;
 
 ---
 
-### Keystoneでのサービス登録
+## 📝 Step 5-2: Keystoneでのサービス登録
+
+このStepでは、NovaサービスとPlacementサービスをKeystoneに登録します。
+
+**📌 プロビジョニングファイル**: `provision/nova_install.sh`（一部）
 
 **admin-openrcファイルを読み込む**:
 
@@ -368,7 +376,11 @@ openstack endpoint list --service placement
 
 ---
 
-### Placementパッケージのインストール
+## 📝 Step 5-3: Placementパッケージのインストール
+
+このStepでは、Placementパッケージをインストールします。
+
+**📌 プロビジョニングファイル**: `provision/nova_install.sh`（一部）
 
 ```bash
 sudo apt update
@@ -382,7 +394,13 @@ sudo apt install -y placement-api
 dpkg -l | grep placement
 ```
 
-### Novaパッケージのインストール
+---
+
+## 📝 Step 5-4: Novaパッケージのインストール
+
+このStepでは、Novaコントローラ側のパッケージをインストールします。
+
+**📌 プロビジョニングファイル**: `provision/nova_install.sh`（一部）
 
 ```bash
 sudo apt update
@@ -397,7 +415,11 @@ dpkg -l | grep nova
 
 ---
 
-### Placement設定ファイルの編集
+## 📝 Step 5-5: Placement設定ファイルの編集
+
+このStepでは、Placementの設定ファイルを編集します。
+
+**📌 プロビジョニングファイル**: `provision/placement_config.sh`（一部）
 
 **設定ファイルのバックアップ**:
 
@@ -442,6 +464,14 @@ connection = mysql+pymysql://placement:PLACEMENT_DBPASS@controller/placement
 - **auth_strategy**: Keystone認証を使用
 - **insecure**: SSL証明書の検証（false=検証する）
 
+---
+
+## 📝 Step 5-6: Placementデータベースの同期
+
+このStepでは、Placementデータベースのスキーマを作成します。
+
+**📌 プロビジョニングファイル**: `provision/placement_config.sh`（一部）
+
 **データベースの同期**:
 
 ```bash
@@ -470,7 +500,11 @@ sudo chgrp placement /etc/placement/placement.conf
 
 ---
 
-### Apache2とNginxの設定
+## 📝 Step 5-7: Apache2とNginxの設定（Placement用）
+
+このStepでは、Placement APIをApache2とNginxでリバースプロキシするための設定を行います。
+
+**📌 プロビジョニングファイル**: `provision/placement_apache.sh` + `provision/nova_nginx.sh`（一部）
 
 Server Worldの手順では、Apache2とNginxの設定が必要です。
 
@@ -693,7 +727,11 @@ sudo systemctl reload nginx
 
 ---
 
-### Nova設定ファイルの編集
+## 📝 Step 5-8: Nova設定ファイルの編集
+
+このStepでは、Novaの設定ファイルを編集します。
+
+**📌 プロビジョニングファイル**: `provision/nova_config.sh`（一部）
 
 **設定ファイルのバックアップ**:
 
@@ -883,7 +921,251 @@ sudo su -s /bin/bash nova -c "nova-manage cell_v2 list_cells"
 
 ---
 
-### Novaサービスの起動
+## 📝 Step 5-10: Nginx設定（Nova API、Metadata、novncproxy用）
+
+このStepでは、Nova API、Metadata API、novncproxyをNginxでリバースプロキシするための設定を行います。
+
+**📌 プロビジョニングファイル**: `provision/nova_nginx.sh`
+
+**Nova API用のNginx設定ファイルの作成**:
+
+```bash
+sudo vim /etc/nginx/sites-available/nova-api.conf
+```
+
+**以下の内容を記述**:
+
+```nginx
+upstream nova-api {
+    server 127.0.0.1:8774;
+}
+
+server {
+    listen 172.16.100.10:8774 ssl;
+    server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
+
+    client_max_body_size 0;
+    client_header_buffer_size 64k;
+    large_client_header_buffers 4 64k;
+
+    location / {
+        proxy_pass http://nova-api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Nova Metadata API用のNginx設定ファイルの作成**:
+
+```bash
+sudo vim /etc/nginx/sites-available/nova-metadata-api.conf
+```
+
+**以下の内容を記述**:
+
+```nginx
+upstream nova-metadata-api {
+    server 127.0.0.1:8775;
+}
+
+server {
+    listen 172.16.100.10:8775 ssl;
+    server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
+
+    client_max_body_size 0;
+    client_header_buffer_size 64k;
+    large_client_header_buffers 4 64k;
+
+    location / {
+        proxy_pass http://nova-metadata-api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Placement API用のNginx設定ファイルの作成**:
+
+```bash
+sudo vim /etc/nginx/sites-available/placement-api.conf
+```
+
+**以下の内容を記述**:
+
+```nginx
+upstream placement-api {
+    server 127.0.0.1:8778;
+}
+
+server {
+    listen 172.16.100.10:8778 ssl;
+    server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
+
+    client_max_body_size 0;
+    client_header_buffer_size 64k;
+    large_client_header_buffers 4 64k;
+
+    location / {
+        proxy_pass http://placement-api;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+> **📌 注意**: Placement APIはApacheで動作していますが、外部からアクセスするためにNginxでプロキシします。Apacheは`127.0.0.1:8778`でリスニングし、Nginxが`172.16.100.10:8778`（HTTPS）でリスニングして、バックエンドのApacheにプロキシします。
+
+**Nova VNC Proxy用のNginx設定ファイルの作成**:
+
+```bash
+sudo vim /etc/nginx/sites-available/novncproxy.conf
+```
+
+**以下の内容を記述**:
+
+```nginx
+upstream novncproxy {
+    server 127.0.0.1:6080;
+}
+
+server {
+    listen 172.16.100.10:6080 ssl;
+    server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
+
+    client_max_body_size 0;
+    client_header_buffer_size 64k;
+    large_client_header_buffers 4 64k;
+
+    location / {
+        proxy_pass http://novncproxy;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+**Nginxサイトの有効化**:
+
+```bash
+sudo ln -s /etc/nginx/sites-available/nova-api.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/nova-metadata-api.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/placement-api.conf /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/novncproxy.conf /etc/nginx/sites-enabled/
+```
+
+> **📌 注意**:
+>
+> - `listen 172.16.100.10:ポート番号 ssl`: 管理ネットワークのIPアドレスでHTTPSリスニング（SSL終端）
+> - `ssl_certificate` / `ssl_certificate_key`: Keystoneで作成したSSL証明書を使用（Server Worldの手順に合わせてHTTPSで通信）
+> - `client_max_body_size 0`: 大容量ファイル転送のため、リクエストボディサイズを無制限に設定
+> - `client_header_buffer_size 64k`: クライアントヘッダーバッファサイズ（OpenStackの長い認証トークンに対応）
+> - `large_client_header_buffers 4 64k`: 大きなクライアントヘッダー用のバッファ（4個、各64KB）
+> - `proxy_pass http://`: バックエンド（Nova API）はHTTPで接続（SSL終端はNginxで行う）
+> - `proxy_set_header`: リバースプロキシで必要なHTTPヘッダーを設定
+
+**Nginx設定の構文チェック**:
+
+```bash
+sudo nginx -t
+```
+
+**期待される出力**:
+
+```bash
+nginx: the configuration file /etc/nginx/nginx.conf syntax is ok
+nginx: configuration file /etc/nginx/nginx.conf test is successful
+```
+
+**Nginx設定のリロード**:
+
+```bash
+sudo systemctl reload nginx
+```
+
+---
+
+## 📝 Step 5-11: Placementサービスの起動
+
+このStepでは、Placementサービスを起動します。
+
+**📌 プロビジョニングファイル**: `provision/placement_service.sh`
+
+**Placementサービスについて**:
+
+**Placement APIは独立したsystemdサービス（`placement-api.service`）ではなく、ApacheのWSGIアプリケーションとして動作します。**
+
+Placement APIは以下の構成で動作します：
+
+- **WSGIアプリケーション**: `/usr/bin/placement-api`
+- **Apache設定**: `/etc/apache2/sites-available/placement-api.conf`
+- **管理サービス**: `apache2`サービスで管理
+- **リスニングポート**: `127.0.0.1:8778`（Apache）、`172.16.100.10:8778`（Nginxリバースプロキシ）
+
+**Placement APIの状態を確認**:
+
+```bash
+# Apacheサービスの状態確認（Placement APIはApacheで動作）
+sudo systemctl status apache2
+```
+
+**期待される出力**:
+
+```bash
+● apache2.service - The Apache HTTP Server
+     Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor preset: enabled)
+     Active: active (running) since ...
+```
+
+**ポートのリスニング確認**:
+
+```bash
+# ポート8778がリッスンしているか確認
+sudo ss -tlnp | grep :8778
+```
+
+**期待される出力**:
+
+```bash
+LISTEN 0      511        127.0.0.1:8778       0.0.0.0:*    users:(("apache2",pid=XXXX,fd=X))
+LISTEN 0      511    172.16.100.10:8778       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
+```
+
+もしPlacement APIが動作していない場合は、Apacheサービスを再起動してください：
+
+```bash
+# Apacheサービスの再起動（Placement APIを含む）
+sudo systemctl restart apache2
+sudo systemctl enable apache2
+```
+
+---
+
+## 📝 Step 5-12: Novaサービスの起動（コントローラ側）
+
+このStepでは、Novaコントローラ側のサービスを起動します。
+
+**📌 プロビジョニングファイル**: `provision/nova_service.sh`
 
 **Novaサービスの起動**:
 
@@ -974,54 +1256,6 @@ LISTEN 0      100        127.0.0.1:6080       0.0.0.0:*    users:(("nova-novncpr
 
 > **📌 注意**: この構成では、NginxがリバースプロキシとしてSSL終端を行い、バックエンドのサービス（nova-api、apache2/placement、nova-novncproxy）はHTTPでローカルホストのみでリッスンしています。これにより、セキュリティとパフォーマンスが向上します。
 
-**📌 Placementサービスについて**:
-
-**Placement APIは独立したsystemdサービス（`placement-api.service`）ではなく、ApacheのWSGIアプリケーションとして動作します。**
-
-Placement APIは以下の構成で動作します：
-
-- **WSGIアプリケーション**: `/usr/bin/placement-api`
-- **Apache設定**: `/etc/apache2/sites-available/placement-api.conf`
-- **管理サービス**: `apache2`サービスで管理
-- **リスニングポート**: `127.0.0.1:8778`（Apache）、`172.16.100.10:8778`（Nginxリバースプロキシ）
-
-**Placement APIの状態を確認**:
-
-```bash
-# Apacheサービスの状態確認（Placement APIはApacheで動作）
-sudo systemctl status apache2
-```
-
-**期待される出力**:
-
-```bash
-● apache2.service - The Apache HTTP Server
-     Loaded: loaded (/lib/systemd/system/apache2.service; enabled; vendor preset: enabled)
-     Active: active (running) since ...
-```
-
-**ポートのリスニング確認**:
-
-```bash
-# ポート8778がリッスンしているか確認
-sudo ss -tlnp | grep :8778
-```
-
-**期待される出力**:
-
-```bash
-LISTEN 0      511        127.0.0.1:8778       0.0.0.0:*    users:(("apache2",pid=XXXX,fd=X))
-LISTEN 0      511    172.16.100.10:8778       0.0.0.0:*    users:(("nginx",pid=XXXX,fd=X))
-```
-
-もしPlacement APIが動作していない場合は、Apacheサービスを再起動してください：
-
-```bash
-# Apacheサービスの再起動（Placement APIを含む）
-sudo systemctl restart apache2
-sudo systemctl enable apache2
-```
-
 **ログの確認**:
 
 ```bash
@@ -1037,7 +1271,9 @@ sudo journalctl -u nova-scheduler -n 20
 
 ---
 
-### Novaの動作確認
+## 📝 Step 5-13: Novaコントローラ側の動作確認
+
+このStepでは、Novaコントローラ側が正常に動作していることを確認します。
 
 Controllerノードで実行します。
 
@@ -1093,7 +1329,13 @@ openstack compute service list
 
 ---
 
-## 📝 Step 5-2: Novaコンピュート側のインストール
+## 📝 Step 5-14: KVMハイパーバイザーのインストール
+
+このStepでは、コンピュートノードにKVMハイパーバイザーをインストールします。
+
+**📌 プロビジョニングファイル**: （手動設定、スクリプト化可能）
+
+> **📌 参考**: Server Worldのepoxy2ページでは、[KVMハイパーバイザーのインストール](https://www.server-world.info/query?os=Ubuntu_24.04&p=kvm&f=1)を先に行うことが推奨されています。ただし、ブリッジの設定は不要です。
 
 > **📌 参考**: この手順は、[Server World - OpenStack Epoxy2 - Compute ノードを他ホストに分離して構成する](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy2&f=3)を参考にしています。All-in-One構成ではなく、Computeノードを別ホストに分離する場合の手順です。
 
@@ -1161,7 +1403,11 @@ Running hypervisor: QEMU 8.0.0
 
 ---
 
-### Novaパッケージのインストール
+## 📝 Step 5-15: Nova Computeパッケージのインストール
+
+このStepでは、Nova Computeパッケージをインストールします。
+
+**📌 プロビジョニングファイル**: `provision/nova_compute_install.sh`
 
 **Nova Computeパッケージのインストール**:
 
@@ -1179,7 +1425,11 @@ dpkg -l | grep nova
 
 ---
 
-### Nova設定ファイルの編集
+## 📝 Step 5-16: Nova Compute設定ファイルの編集
+
+このStepでは、Nova Computeの設定ファイルを編集します。
+
+**📌 プロビジョニングファイル**: `provision/nova_compute_config.sh`
 
 > **📌 注意**: Server Worldのepoxy2ページ（[Compute ノードを他ホストに分離して構成する](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy2&f=3)）の設定に完全に合わせています。`nova-compute`パッケージをインストールすると、デフォルトの設定ファイル（`/etc/nova/nova.conf`）が作成されますが、分離されたComputeノードでは以下の設定が必要です。
 >
@@ -1289,7 +1539,11 @@ sudo chgrp nova /etc/nova/nova.conf
 
 ---
 
-### libvirt / KVMの設定確認
+## 📝 Step 5-17: libvirt / KVMの設定確認
+
+このStepでは、libvirtとKVMが正常に動作していることを確認します。
+
+**📌 プロビジョニングファイル**: （設定確認コマンド）
 
 > **📌 注意**: KVMハイパーバイザーのインストール後、libvirtサービスが正常に起動していることを確認します。
 
@@ -1369,7 +1623,11 @@ Running hypervisor: QEMU 8.0.0
 
 ---
 
-### Nova Computeサービスの起動
+## 📝 Step 5-18: Nova Computeサービスの起動
+
+このStepでは、Nova Computeサービスを起動します。
+
+**📌 プロビジョニングファイル**: `provision/nova_compute_service.sh`
 
 **Nova Computeサービスの起動**:
 
@@ -1435,7 +1693,11 @@ sudo tail -100 /var/log/nova/nova-compute.log
 
 ---
 
-### コントローラでのコンピュートノード登録確認
+## 📝 Step 5-19: コントローラでのコンピュートノード登録確認
+
+このStepでは、コントローラノードでコンピュートノードが正しく登録されていることを確認します。
+
+**📌 プロビジョニングファイル**: （動作確認コマンド）
 
 **コントローラノードに戻る**:
 
@@ -1546,7 +1808,11 @@ openstack hypervisor show compute1
 
 ---
 
-## 📝 Step 5-3: Flavorの作成
+## 📝 Step 5-20: Flavorの作成
+
+このStepでは、VMインスタンスのサイズを定義するFlavorを作成します。
+
+**📌 プロビジョニングファイル**: `provision/nova_flavor.sh`
 
 ### 標準Flavorの作成
 
@@ -2263,9 +2529,26 @@ Phase 5の学習が完了したら、以下のテンプレートに記録して�
 YYYY/MM/DD
 
 ### 完了したStep
-- [x] Step 5-1: Novaコントローラ側のインストール
-- [x] Step 5-2: Novaコンピュート側のインストール
-- [x] Step 5-3: Flavorの作成
+- [x] Step 5-1: Novaデータベースの作成
+- [x] Step 5-2: Keystoneでのサービス登録
+- [x] Step 5-3: Placementパッケージのインストール
+- [x] Step 5-4: Novaパッケージのインストール
+- [x] Step 5-5: Placement設定ファイルの編集
+- [x] Step 5-6: Placementデータベースの同期
+- [x] Step 5-7: Apache2とNginxの設定（Placement用）
+- [x] Step 5-8: Nova設定ファイルの編集
+- [x] Step 5-9: Novaデータベースの同期とCellの設定
+- [x] Step 5-10: Nginx設定（Nova API、Metadata、novncproxy用）
+- [x] Step 5-11: Placementサービスの起動
+- [x] Step 5-12: Novaサービスの起動（コントローラ側）
+- [x] Step 5-13: Novaコントローラ側の動作確認
+- [x] Step 5-14: KVMハイパーバイザーのインストール
+- [x] Step 5-15: Nova Computeパッケージのインストール
+- [x] Step 5-16: Nova Compute設定ファイルの編集
+- [x] Step 5-17: libvirt / KVMの設定確認
+- [x] Step 5-18: Nova Computeサービスの起動
+- [x] Step 5-19: コントローラでのコンピュートノード登録確認
+- [x] Step 5-20: Flavorの作成
 
 ### 使用した方法
 - [x] Command

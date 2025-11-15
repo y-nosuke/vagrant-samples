@@ -13,27 +13,25 @@
   - [📐 Keystoneのアーキテクチャ](#-keystoneのアーキテクチャ)
     - [Keystoneの主要コンポーネント](#keystoneの主要コンポーネント)
     - [認証フロー](#認証フロー)
-  - [📝 Step 3-1: Keystoneのインストール](#-step-3-1-keystoneのインストール)
-    - [データベースの作成](#データベースの作成)
-    - [Keystoneパッケージのインストール](#keystoneパッケージのインストール)
-    - [Keystone設定ファイルの編集](#keystone設定ファイルの編集)
-      - [1. memcacheセクション](#1-memcacheセクション)
-      - [2. databaseセクション](#2-databaseセクション)
-      - [3. tokenセクション](#3-tokenセクション)
-    - [データベースの同期](#データベースの同期)
+  - [📝 Step 3-1: Keystoneデータベースの作成](#-step-3-1-keystoneデータベースの作成)
+  - [📝 Step 3-2: Keystoneパッケージのインストール](#-step-3-2-keystoneパッケージのインストール)
+  - [📝 Step 3-3: Keystone設定ファイルの編集](#-step-3-3-keystone設定ファイルの編集)
+    - [1. memcacheセクション](#1-memcacheセクション)
+    - [2. databaseセクション](#2-databaseセクション)
+    - [3. tokenセクション](#3-tokenセクション)
+  - [📝 Step 3-4: FernetキーとCredentialキーの設定](#-step-3-4-fernetキーとcredentialキーの設定)
     - [Fernetキーの設定](#fernetキーの設定)
     - [Credentialキーの設定](#credentialキーの設定)
-    - [Keystone Bootstrapの実行](#keystone-bootstrapの実行)
+  - [📝 Step 3-5: データベースの同期](#-step-3-5-データベースの同期)
+  - [📝 Step 3-8: Keystone Bootstrapの実行](#-step-3-8-keystone-bootstrapの実行)
     - [SSL/TLS証明書の設定](#ssltls証明書の設定)
       - [方法1: Let's Encrypt証明書を使用（推奨・本番環境）](#方法1-lets-encrypt証明書を使用推奨本番環境)
       - [方法2: 自己署名証明書を作成（学習環境用）](#方法2-自己署名証明書を作成学習環境用)
-    - [Apache HTTP Serverの設定](#apache-http-serverの設定)
+  - [📝 Step 3-7: Apache HTTP Serverの設定](#-step-3-7-apache-http-serverの設定)
     - [サービスの起動と確認](#サービスの起動と確認)
-  - [📝 Step 3-2: Keystoneの動作確認と設定](#-step-3-2-keystoneの動作確認と設定)
-    - [環境変数ファイル（admin-openrc）の作成](#環境変数ファイルadmin-openrcの作成)
-    - [`service`プロジェクトの作成（必須）](#serviceプロジェクトの作成必須)
-    - [作成されたリソースの確認](#作成されたリソースの確認)
-    - [動作確認](#動作確認)
+  - [📝 Step 3-8: Keystone Bootstrapの実行](#-step-3-8-keystone-bootstrapの実行-1)
+  - [📝 Step 3-10: serviceプロジェクトの作成](#-step-3-10-serviceプロジェクトの作成)
+  - [📝 Step 3-11: Keystoneの動作確認](#-step-3-11-keystoneの動作確認)
   - [✅ Phase 3 完了チェックリスト](#-phase-3-完了チェックリスト)
   - [⚠️ トラブルシューティング](#️-トラブルシューティング)
     - [問題1: Apacheサービスが起動しない](#問題1-apacheサービスが起動しない)
@@ -140,11 +138,11 @@ sequenceDiagram
 
 ---
 
-## 📝 Step 3-1: Keystoneのインストール
+## 📝 Step 3-1: Keystoneデータベースの作成
 
-このStepでは、Keystoneサービスをインストールし、基本設定を行います。
+このStepでは、Keystone用のデータベースとユーザーを作成します。
 
-### データベースの作成
+**📌 プロビジョニングファイル**: `provision/keystone_db.sh`
 
 **コントローラノードにSSH接続**:
 
@@ -187,7 +185,13 @@ EXIT;
 > - 本番環境では `KEYSTONE_DBPASS` をより強力なパスワードに変更してください
 > - パスワードは環境変数やシークレット管理システムで管理することを推奨します
 
-### Keystoneパッケージのインストール
+---
+
+## 📝 Step 3-2: Keystoneパッケージのインストール
+
+このStepでは、Keystoneパッケージと必要な依存パッケージをインストールします。
+
+**📌 プロビジョニングファイル**: `provision/keystone_install.sh`
 
 **パッケージのインストール**:
 
@@ -212,7 +216,13 @@ dpkg -l | grep -E "(keystone|openstackclient|apache2|wsgi|oauth2client)"
 
 必要なパッケージがインストールされていることを確認します。
 
-### Keystone設定ファイルの編集
+---
+
+## 📝 Step 3-3: Keystone設定ファイルの編集
+
+このStepでは、Keystoneの設定ファイルを編集します。
+
+**📌 プロビジョニングファイル**: `provision/keystone_config.sh`（一部）
 
 **設定ファイルのバックアップ**:
 
@@ -228,21 +238,21 @@ sudo vim /etc/keystone/keystone.conf
 
 **主要な設定項目を編集**:
 
-#### 1. memcacheセクション
+### 1. memcacheセクション
 
 ```ini
 [cache]
 memcache_servers = controller:11211
 ```
 
-#### 2. databaseセクション
+### 2. databaseセクション
 
 ```ini
 [database]
 connection = mysql+pymysql://keystone:KEYSTONE_DBPASS@controller/keystone
 ```
 
-#### 3. tokenセクション
+### 3. tokenセクション
 
 ```ini
 [token]
@@ -255,58 +265,13 @@ Fernetトークンプロバイダーを使用します（推奨）。
 
 Memcachedを使用してトークンをキャッシュします。
 
-### データベースの同期
+---
 
-**データベーススキーマの初期化**:
+## 📝 Step 3-4: FernetキーとCredentialキーの設定
 
-```bash
-sudo su -s /bin/bash keystone -c "keystone-manage db_sync"
-```
+このStepでは、Keystoneが使用する暗号化キー（FernetキーとCredentialキー）を生成します。
 
-> **📌 コマンド解説**: `keystone-manage db_sync`
->
-> - **目的**: Keystoneデータベースのスキーマを作成または更新します
-> - **動作**: データベース接続設定（`/etc/keystone/keystone.conf`の`[database]`セクション）に基づいて、必要なテーブルを作成します
-> - **実行タイミング**: 初回インストール時、またはKeystoneのバージョンアップ時に実行します
-> - **注意**: 既存のデータベースに対して実行すると、スキーマが更新されますが、既存のデータは保持されます
-
-**データベースにテーブルが作成されたことを確認**:
-
-```bash
-sudo mysql -u root -p keystone -e "SHOW TABLES;"
-```
-
-**期待される出力例**:
-
-多数のテーブルが作成されていることを確認します。主要なテーブルは以下の通りです：
-
-```bash
-+------------------------------------+
-| Tables_in_keystone                 |
-+------------------------------------+
-| access_rule                        |
-| access_token                       |
-| alembic_version                    |
-| application_credential             |
-| assignment                         |
-| credential                         |
-| endpoint                           |
-| group                              |
-| local_user                         |
-| password                           |
-| policy                             |
-| project                            |
-| region                             |
-| role                               |
-| service                            |
-| token                              |
-| trust                              |
-| user                               |
-| ...（他にも多数のテーブル）       |
-+------------------------------------+
-```
-
-主要なテーブル（`project`、`user`、`role`、`token`、`endpoint`、`service`など）が表示されることを確認します。
+**📌 プロビジョニングファイル**: `provision/keystone_config.sh`（一部）
 
 ### Fernetキーの設定
 
@@ -360,7 +325,72 @@ Credentialキーファイルが作成されていることを確認します。
 > - **生成場所**: `/etc/keystone/credential-keys/` ディレクトリにキーファイルが作成されます
 > - **用途**: アプリケーションがユーザー認証情報を直接扱わずに認証できるようにする機能で使用されます
 
-### Keystone Bootstrapの実行
+---
+
+## 📝 Step 3-5: データベースの同期
+
+このStepでは、Keystoneデータベースのスキーマを作成します。
+
+**📌 プロビジョニングファイル**: `provision/keystone_config.sh`（一部）
+
+**データベーススキーマの初期化**:
+
+```bash
+sudo su -s /bin/bash keystone -c "keystone-manage db_sync"
+```
+
+> **📌 コマンド解説**: `keystone-manage db_sync`
+>
+> - **目的**: Keystoneデータベースのスキーマを作成または更新します
+> - **動作**: データベース接続設定（`/etc/keystone/keystone.conf`の`[database]`セクション）に基づいて、必要なテーブルを作成します
+> - **実行タイミング**: 初回インストール時、またはKeystoneのバージョンアップ時に実行します
+> - **注意**: 既存のデータベースに対して実行すると、スキーマが更新されますが、既存のデータは保持されます
+
+**データベースにテーブルが作成されたことを確認**:
+
+```bash
+sudo mysql -u root -p keystone -e "SHOW TABLES;"
+```
+
+**期待される出力例**:
+
+多数のテーブルが作成されていることを確認します。主要なテーブルは以下の通りです：
+
+```bash
++------------------------------------+
+| Tables_in_keystone                 |
++------------------------------------+
+| access_rule                        |
+| access_token                       |
+| alembic_version                    |
+| application_credential             |
+| assignment                         |
+| credential                         |
+| endpoint                           |
+| group                              |
+| local_user                         |
+| password                           |
+| policy                             |
+| project                            |
+| region                             |
+| role                               |
+| service                          |
+| token                              |
+| trust                              |
+| user                               |
+| ...（他にも多数のテーブル）       |
++------------------------------------+
+```
+
+主要なテーブル（`project`、`user`、`role`、`token`、`endpoint`、`service`など）が表示されることを確認します。
+
+---
+
+## 📝 Step 3-8: Keystone Bootstrapの実行
+
+このStepでは、Keystoneの初期設定を自動的に行います。
+
+**📌 プロビジョニングファイル**: `provision/keystone_bootstrap.sh`（一部）
 
 `keystone-manage bootstrap`コマンドを使用して、Keystoneの初期設定を自動的に行います。このコマンドは、adminユーザー、adminプロジェクト、adminロール、およびサービスカタログを自動的に作成します。**注意**: `service`プロジェクトは自動作成されないため、この後の手順で手動作成する必要があります。
 
@@ -463,7 +493,13 @@ sudo chmod 644 /etc/ssl/certs/keystone/keystone-cert.pem
 > ```
 >
 
-### Apache HTTP Serverの設定
+---
+
+## 📝 Step 3-7: Apache HTTP Serverの設定
+
+このStepでは、KeystoneをApache HTTP Server上でWSGIアプリケーションとして動作させるための設定を行います。
+
+**📌 プロビジョニングファイル**: `provision/keystone_apache.sh`（Apache設定処理を含む）
 
 KeystoneはApache HTTP Server上でWSGIアプリケーションとして動作します。
 
@@ -797,11 +833,15 @@ sudo tail -20 /var/log/apache2/keystone.log
 
 ---
 
-## 📝 Step 3-2: Keystoneの動作確認と設定
+## 📝 Step 3-8: Keystone Bootstrapの実行
 
-> **⚠️ 重要**: OpenStack CLIコマンド（`openstack`）を実行するには、認証情報を環境変数として設定する必要があります。以下の手順で環境変数ファイルを作成してから、リソースの確認を行ってください。
+このStepでは、Keystoneの初期設定を自動的に行います。
 
-### 環境変数ファイル（admin-openrc）の作成
+**📌 プロビジョニングファイル**: `provision/keystone_bootstrap.sh`（一部）
+
+`keystone-manage bootstrap`コマンドを使用して、Keystoneの初期設定を自動的に行います。このコマンドは、adminユーザー、adminプロジェクト、adminロール、およびサービスカタログを自動的に作成します。**注意**: `service`プロジェクトは自動作成されないため、この後の手順で手動作成する必要があります。
+
+**Keystone Bootstrapの実行**:
 
 OpenStackコマンドを実行する際に認証情報を毎回入力するのは非効率です。環境変数ファイルを作成して、認証情報を自動的に読み込むようにします。
 
@@ -902,7 +942,13 @@ echo $OS_PROJECT_NAME
 - プロジェクトの概念については [Part 2 - Keystoneの基本概念](02_architecture.md#111-openstackの基本概念プロジェクトユーザーロールドメイン) を参照してください。
 - プロジェクトの設計方法については [Part 4 - プロジェクト・マルチテナント設計](04_system_design.md#3-プロジェクトマルチテナント設計) を参照してください。
 
-### `service`プロジェクトの作成（必須）
+---
+
+## 📝 Step 3-10: serviceプロジェクトの作成
+
+このStepでは、OpenStackの各サービスが使用する`service`プロジェクトを作成します。
+
+**📌 プロビジョニングファイル**: `provision/keystone_bootstrap.sh`（一部、または手動）
 
 **⚠️ 重要**: `keystone-manage bootstrap`コマンドは`service`プロジェクトを**自動作成しません**。公式ドキュメントによると、`bootstrap`コマンドは`admin`プロジェクト、`admin`ユーザー、各種ロールのみを作成します。`service`プロジェクトは手動作成が必要です。
 
@@ -935,7 +981,11 @@ openstack project list
 - [Server World - Keystone設定 #2](https://www.server-world.info/query?os=Ubuntu_24.04&p=openstack_epoxy&f=4)では、bootstrap後に明示的に`service`プロジェクトを作成しています
 - [OpenStack公式ドキュメント - Bootstrapping Identity](https://docs.openstack.org/keystone/2024.1/admin/bootstrap.html)でも、`service`プロジェクトは手動作成が必要とされています
 
-### 作成されたリソースの確認
+---
+
+## 📝 Step 3-11: Keystoneの動作確認
+
+このStepでは、Keystoneが正常に動作していることを確認します。
 
 環境変数を設定した後、以下のコマンドでKeystoneに作成されたリソースを確認します。
 
@@ -971,8 +1021,6 @@ openstack endpoint list
 
 Keystoneサービスのエンドポイント（admin、internal、public）が表示されることを確認します。
 
-### 動作確認
-
 **トークンの発行と確認**:
 
 ```bash
@@ -1000,23 +1048,17 @@ openstack token issue
 
 以下を確認して、Phase 3が完了していることを確認してください：
 
-- [ ] Keystoneデータベースが作成されている
-- [ ] Keystoneパッケージがインストールされている
-- [ ] `/etc/keystone/keystone.conf` が適切に設定されている
-- [ ] データベーススキーマが同期されている（`keystone-manage db_sync`）
-- [ ] Fernetキーが生成されている（`keystone-manage fernet_setup`）
-- [ ] Credentialキーが生成されている（`keystone-manage credential_setup`）
-- [ ] Apache HTTP Serverが正常に起動している
-- [ ] Keystone APIがポート5000でリスニングしている
-- [ ] Keystone Bootstrapが正常に完了している（`keystone-manage bootstrap`）
-- [ ] adminプロジェクトが作成されている
-- [ ] serviceプロジェクトが作成されている
-- [ ] adminユーザーが作成されている
-- [ ] adminロールが作成されている
-- [ ] adminユーザーにadminロールが付与されている
-- [ ] Keystoneサービスのエンドポイントが作成されている
-- [ ] `admin-openrc` ファイルが作成されている
-- [ ] `openstack token issue` コマンドが正常に動作する
+- [ ] Step 3-1: Keystoneデータベースが作成されている
+- [ ] Step 3-2: Keystoneパッケージがインストールされている
+- [ ] Step 3-3: Keystone設定ファイルが適切に設定されている
+- [ ] Step 3-4: FernetキーとCredentialキーが生成されている
+- [ ] Step 3-5: データベーススキーマが同期されている
+- [ ] Step 3-6: SSL/TLS証明書が設定されている
+- [ ] Step 3-7: Apache HTTP Serverが正常に起動している
+- [ ] Step 3-8: Keystone Bootstrapが正常に完了している
+- [ ] Step 3-9: `admin-openrc` ファイルが作成されている
+- [ ] Step 3-10: serviceプロジェクトが作成されている
+- [ ] Step 3-11: `openstack token issue` コマンドが正常に動作する
 - [ ] プロジェクト、ユーザー、ロール、エンドポイントの一覧が正常に表示される
 
 ---
@@ -1191,8 +1233,17 @@ Phase 3の学習が完了したら、以下のテンプレートに記録して�
 YYYY/MM/DD
 
 ### 完了したStep
-- [x] Step 3-1: Keystoneのインストール
-- [x] Step 3-2: Keystoneの動作確認と設定
+- [x] Step 3-1: Keystoneデータベースの作成
+- [x] Step 3-2: Keystoneパッケージのインストール
+- [x] Step 3-3: Keystone設定ファイルの編集
+- [x] Step 3-4: FernetキーとCredentialキーの設定
+- [x] Step 3-5: データベースの同期
+- [x] Step 3-6: SSL/TLS証明書の設定
+- [x] Step 3-7: Apache HTTP Serverの設定
+- [x] Step 3-8: Keystone Bootstrapの実行
+- [x] Step 3-9: 環境変数ファイル（admin-openrc）の作成
+- [x] Step 3-10: serviceプロジェクトの作成
+- [x] Step 3-11: Keystoneの動作確認
 
 ### 使用した方法
 - [x] Command

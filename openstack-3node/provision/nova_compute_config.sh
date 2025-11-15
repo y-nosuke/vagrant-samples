@@ -21,24 +21,38 @@ else
     echo "✓ バックアップファイルは既に存在します"
 fi
 
+# 環境変数の設定（Placement用）
+PLACEMENT_PASS=${PLACEMENT_PASS:-"password123"}
+
 # 設定ファイルの編集
 echo "  設定ファイルを編集中..."
 sudo tee "${CONFIG_FILE}" > /dev/null <<EOF
 [DEFAULT]
-log_dir = /var/log/nova
 state_path = /var/lib/nova
+enabled_apis = osapi_compute,metadata
+log_dir = /var/log/nova
+# RabbitMQサーバー接続情報
 transport_url = rabbit://openstack:${RABBIT_PASS}@controller:5672
-my_ip = 172.16.100.31
-use_neutron = true
-firewall_driver = nova.virt.firewall.NoopFirewallDriver
 
-vncserver_listen = 0.0.0.0
-vncserver_proxyclient_address = 172.16.100.31
-novncproxy_base_url = http://controller:6080/vnc_auto.html
+[api]
+auth_strategy = keystone
 
+[vnc]
+enabled = True
+# インスタンスがリスンするIPアドレス
+# ノードのIPアドレスを指定
+server_listen = 172.16.100.31
+server_proxyclient_address = 172.16.100.31
+novncproxy_base_url = https://controller:6080/vnc_auto.html
+
+# Glanceサーバーを指定
 [glance]
-api_servers = http://controller:9292
+api_servers = https://controller:9292
 
+[oslo_concurrency]
+lock_path = \$state_path/tmp
+
+# Keystoneサーバー接続情報
 [keystone_authtoken]
 www_authenticate_uri = https://controller:5000
 auth_url = https://controller:5000
@@ -49,13 +63,26 @@ user_domain_name = Default
 project_name = service
 username = nova
 password = ${NOVA_PASS}
+# Apache2 Keystone で自己署名の証明書を使用の場合は [true]
 insecure = true
 
-[oslo_concurrency]
-lock_path = /var/lib/nova/tmp
+[placement]
+auth_url = https://controller:5000
+os_region_name = RegionOne
+auth_type = password
+project_domain_name = Default
+user_domain_name = Default
+project_name = service
+username = placement
+password = ${PLACEMENT_PASS}
+# Apache2 Keystone で自己署名の証明書を使用の場合は [true]
+insecure = true
 
-[libvirt]
-virt_type = kvm
+[wsgi]
+api_paste_config = /etc/nova/api-paste.ini
+
+[oslo_policy]
+enforce_new_defaults = true
 EOF
 echo "✓ 設定ファイルを編集しました"
 

@@ -24,15 +24,16 @@ sed -i '/^\[token\]/,/^\[/ {
     /^\[token\]/a provider = fernet
 }' /etc/keystone/keystone.conf
 
-# memcacheセクションの設定
-if ! grep -q "^\[memcache\]" /etc/keystone/keystone.conf; then
+# cacheセクションの設定（memcache_servers）
+if ! grep -q "^\[cache\]" /etc/keystone/keystone.conf; then
     echo "" >> /etc/keystone/keystone.conf
-    echo "[memcache]" >> /etc/keystone/keystone.conf
-    echo "servers = controller:11211" >> /etc/keystone/keystone.conf
+    echo "[cache]" >> /etc/keystone/keystone.conf
+    echo "memcache_servers = controller:11211" >> /etc/keystone/keystone.conf
 else
-    sed -i '/^\[memcache\]/,/^\[/ {
-        /^servers =/d
-        /^\[memcache\]/a servers = controller:11211
+    sed -i '/^\[cache\]/,/^\[/ {
+        /^memcache_servers =/d
+        /^#memcache_servers =/d
+        /^\[cache\]/a memcache_servers = controller:11211
     }' /etc/keystone/keystone.conf
 fi
 

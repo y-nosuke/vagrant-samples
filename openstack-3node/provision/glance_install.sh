@@ -53,7 +53,7 @@ echo "  エンドポイントを作成中..."
 if openstack endpoint list --service glance --interface public -f value -c ID | grep -q .; then
     echo "✓ publicエンドポイントは既に存在します"
 else
-    openstack endpoint create --region RegionOne image public http://controller:9292
+    openstack endpoint create --region RegionOne image public https://controller:9292
     echo "✓ publicエンドポイントを作成しました"
 fi
 
@@ -61,7 +61,7 @@ fi
 if openstack endpoint list --service glance --interface internal -f value -c ID | grep -q .; then
     echo "✓ internalエンドポイントは既に存在します"
 else
-    openstack endpoint create --region RegionOne image internal http://controller:9292
+    openstack endpoint create --region RegionOne image internal https://controller:9292
     echo "✓ internalエンドポイントを作成しました"
 fi
 
@@ -69,7 +69,7 @@ fi
 if openstack endpoint list --service glance --interface admin -f value -c ID | grep -q .; then
     echo "✓ adminエンドポイントは既に存在します"
 else
-    openstack endpoint create --region RegionOne image admin http://controller:9292
+    openstack endpoint create --region RegionOne image admin https://controller:9292
     echo "✓ adminエンドポイントを作成しました"
 fi
 

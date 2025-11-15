@@ -29,8 +29,11 @@ upstream glance-api {
 }
 
 server {
-    listen 172.16.100.10:9292;
+    listen 172.16.100.10:9292 ssl;
     server_name controller;
+
+    ssl_certificate /etc/ssl/certs/keystone/keystone-cert.pem;
+    ssl_certificate_key /etc/ssl/private/keystone/keystone-key.pem;
 
     client_max_body_size 0;
     client_header_buffer_size 64k;

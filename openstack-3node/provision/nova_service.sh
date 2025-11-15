@@ -7,7 +7,7 @@ echo "[nova-service] Novaサービスの起動中..."
 
 # Novaサービスの一時停止（既に起動している場合、ポート競合を回避）
 echo "  Novaサービスを一時停止中（ポート競合を回避）..."
-sudo systemctl stop nova-api nova-metadata-api nova-novncproxy 2>/dev/null || true
+sudo systemctl stop nova-api nova-novncproxy 2>/dev/null || true
 
 # Apache2とNginxの再起動
 echo "  Apache2とNginxを再起動中..."
